@@ -29,14 +29,14 @@ void error(const char *msg){
 
 void loadProxySetting(){
     int yes = 1;
-    if(setsockopt(proxy_sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) error("Error on setsockopt.");
+    if(setsockopt(proxy_sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) error("Error on setsockopt.\n");
 }
 
 void loadTimeoutSetting(int sockfd){
     struct timeval tv;
     tv.tv_sec = 5;
     tv.tv_usec = 0;
-    if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv)) == -1) error("Error on setsockopt.");
+    if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv)) == -1) error("Error on setsockopt.\n");
 }
 
 void createProxySocket(){
@@ -74,7 +74,7 @@ void connectToGunicornServer(){
 
 char * concatString(const char *str1, const char *str2){
     char *res = (char *)malloc(strlen(str1)+strlen(str2)+1);
-    if(res == NULL) error("Failed to allocate memory.");
+    if(res == NULL) error("Failed to allocate memory.\n");
     strcpy(res, str1);
     strcat(res, str2);
     return res;
