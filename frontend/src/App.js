@@ -34,14 +34,48 @@ function App() {
 	return (
 		<div className="App">
 			<header className="App-header">
-				<h1>React and flask</h1>
-				{/* Calling a data from setdata for showing */}
-				<p>{data.name}</p>
-				<p>{data.age}</p>
-				<p>{data.date}</p>
-				<p>{data.programming}</p>
-
+				<h2>PQC demo</h2>
 			</header>
+			<center>
+				{/* <div>
+					<p>{data.name}</p>
+					<p>{data.age}</p>
+					<p>{data.date}</p>
+					<p>{data.programming}</p>
+				</div> */}
+				<div className="content-Box">
+					<div className="send-Box">
+						<h2>Send</h2>
+						<div class="fakeMenu">
+							<div class="fakeButtons fakeClose"></div>
+							<div class="fakeButtons fakeMinimize"></div>
+							<div class="fakeButtons fakeZoom"></div>
+						</div>
+						<div class="fakeScreen">
+							<form method="POST">
+								<label>
+									<p>Send:</p>
+									<input type="text" name="input" />
+								</label>
+								&emsp;
+								<input type="submit" value="Submit" />
+							</form>
+							{/* <p class="line4"><span class="cursor4">_</span></p> */}
+						</div>
+					</div>
+					<div className="recieve-Box">
+						<h2>Recieve</h2>
+						<div class="fakeMenu">
+							<div class="fakeButtons fakeClose"></div>
+							<div class="fakeButtons fakeMinimize"></div>
+							<div class="fakeButtons fakeZoom"></div>
+						</div>
+						<div class="fakeScreen">
+							{/* <p class="line4"><span class="cursor4">_</span></p> */}
+						</div>
+					</div>
+				</div>
+			</center>
 		</div>
 	);
 }
