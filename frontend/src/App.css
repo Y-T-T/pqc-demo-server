@@ -43,6 +43,7 @@
   background-color: #282c34;
   height: 90vh;
   max-height: 90vh;
+  flex-direction: column;
 }
 
 .send-Box {
@@ -50,17 +51,19 @@
   border-width: 5px; */
   background-color: #272727;
   padding: 10px;
+  height: 10vh;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
-.recieve-Box {
+.log-Box {
   /* border-style: inset;
   border-width: 5px; */
+  min-height: 0;
   background-color: #272727;
   padding: 10px;
-  flex: 1;
+  flex: 3;
   display: flex;
   flex-direction: column;
 }
@@ -117,7 +120,18 @@
   border-bottom-right-radius: 5px;
   text-align: left;
   flex-grow: 1;
+  display: flex;
 }
+
+.logScreen {
+  overflow: scroll;
+  min-height: min-content;
+}
+
+/* .fakeScreen div{
+  margin: 10px;
+  overflow: scroll;
+} */
 
 p {
   /* position: relative; */
@@ -127,14 +141,55 @@ p {
   font-size: 1.25em;
   font-family: monospace;
   white-space: nowrap;
-  /* overflow: hidden; */
-  width: 0;
   color: #fff;
+  /* border: solid 1px #00d742; */
+}
+
+div.log{
+  height: 100%;
+}
+
+form, label {
+  display: block;
+  height: 100%;
+}
+
+.form-container {
+  height: 100%;
+  width: 100%;
+  text-align: left;
+}
+.flex-container {
+  display: flex;
+  height: 100%;
+  flex-direction: row;
+  align-items: center;
+}
+
+.inputBorder {
+  position: relative;
+  /* display: flex; */
+  width: 100%;
+  /* align-items: center;
+  justify-content: center; */
+}
+
+input {
+  caret-color: transparent;
+}
+
+.msgInput {
+  font: 16px monospace;
+  padding-right: 10px;
+  width: 100%;
+}
+*:focus {
+  outline: none;
 }
 
 input[type="text"], textarea{
   border: none;
-  background-color: #bbb;
+  background-color: #151515;
 }
 
 span {
@@ -142,64 +197,15 @@ span {
   font-weight: bold;
 }
 
-.line1 {
-  color: #9CD9F0;
-  -webkit-animation: type .5s 1s steps(20, end) forwards;
-  -moz-animation: type .5s 1s steps(20, end) forwards;
-  -o-animation: type .5s 1s steps(20, end) forwards;
-  animation: type .5s 1s steps(20, end) forwards;
-}
-
-.cursor1 {
-  -webkit-animation: blink 1s 2s 2 forwards;
-  -moz-animation: blink 1s 2s 2 forwards;
-  -o-animation: blink 1s 2s 2 forwards;
-  animation: blink 1s 2s 2 forwards;
-}
-
-.line2 {
-  color: #CDEE69;
-  -webkit-animation: type .5s 4.25s steps(20, end) forwards;
-  -moz-animation: type .5s 4.25s steps(20, end) forwards;
-  -o-animation: type .5s 4.25s steps(20, end) forwards;
-  animation: type .5s 4.25s steps(20, end) forwards;
-}
-
-.cursor2 {
-  -webkit-animation: blink 1s 5.25s 2 forwards;
-  -moz-animation: blink 1s 5.25s 2 forwards;
-  -o-animation: blink 1s 5.25s 2 forwards;
-  animation: blink 1s 5.25s 2 forwards;
-}
-
-.line3 {
-  color: #E09690;
-  -webkit-animation: type .5s 7.5s steps(20, end) forwards;
-  -moz-animation: type .5s 7.5s steps(20, end) forwards;
-  -o-animation: type .5s 7.5s steps(20, end) forwards;
-  animation: type .5s 7.5s steps(20, end) forwards;
-}
-
-.cursor3 {
-  -webkit-animation: blink 1s 8.5s 2 forwards;
-  -moz-animation: blink 1s 8.5s 2 forwards;
-  -o-animation: blink 1s 8.5s 2 forwards;
-  animation: blink 1s 8.5s 2 forwards;
-}
-
-.line4 {
-  color: #fff;
-  -webkit-animation: type .5s 10.75s steps(20, end) forwards;
-  -moz-animation: type .5s 10.75s steps(20, end) forwards;
-  -o-animation: type .5s 10.75s steps(20, end) forwards;
-  animation: type .5s 10.75s steps(20, end) forwards;
-}
-
-.cursor4 {
+.cursor {
   -webkit-animation: blink 1s 11.5s infinite;
   -moz-animation: blink 1s 8.5s infinite;
   -o-animation: blink 1s 8.5s infinite;
   animation: blink 1s 8.5s infinite;
+  position: absolute;
+  bottom: 2px;
+  display: inline-block;
+  width: 8px;
 }
 
 @-webkit-keyframes blink {
