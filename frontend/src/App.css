@@ -128,10 +128,9 @@
   min-height: min-content;
 }
 
-/* .fakeScreen div{
-  margin: 10px;
-  overflow: scroll;
-} */
+.logScreen::-webkit-scrollbar {
+  display: none;
+}
 
 p {
   /* position: relative; */
@@ -140,7 +139,9 @@ p {
   text-align: left;
   font-size: 1.25em;
   font-family: monospace;
-  white-space: nowrap;
+  word-break: break-all;
+  white-space: pre-wrap;
+  word-wrap: break-word;
   color: #fff;
   /* border: solid 1px #00d742; */
 }
@@ -175,6 +176,7 @@ form, label {
 }
 
 input {
+  color: white;
   caret-color: transparent;
 }
 

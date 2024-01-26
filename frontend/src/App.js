@@ -151,6 +151,22 @@ function App() {
 			</header>
 			<center>
 				<div className="content-Box">
+					<div className="log-Box">
+						<h2>Log</h2>
+						<div className="fakeMenu">
+							<div className="fakeButtons fakeClose"></div>
+							<div className="fakeButtons fakeMinimize"></div>
+							<div className="fakeButtons fakeZoom"></div>
+						</div>
+						<div className="fakeScreen logScreen">
+							<div className="log">
+								{msgs.map((msg, index) => (
+									<p key={index}>{msg}</p>
+								))}
+								<div ref={endOfMessagesRef}></div>
+							</div>
+						</div>
+					</div>
 					<div className="send-Box">
 						<h2>Send</h2>
 						<div className="fakeMenu">
@@ -175,22 +191,6 @@ function App() {
 									&emsp;
 									<input type="submit" value="Send" style={{display: 'none'}} />
 								</form>
-							</div>
-						</div>
-					</div>
-					<div className="log-Box">
-						<h2>Log</h2>
-						<div className="fakeMenu">
-							<div className="fakeButtons fakeClose"></div>
-							<div className="fakeButtons fakeMinimize"></div>
-							<div className="fakeButtons fakeZoom"></div>
-						</div>
-						<div className="fakeScreen logScreen">
-							<div className="log">
-								{msgs.map((msg, index) => (
-									<p key={index}>{msg}</p>
-								))}
-								<div ref={endOfMessagesRef}></div>
 							</div>
 						</div>
 					</div>
