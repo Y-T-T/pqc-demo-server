@@ -15,10 +15,11 @@ def index(path):
 @app.route('/handle_msg', methods=['POST'])
 def post_test():
     if request.method == 'POST':
-        # print(request.json)
+        client_IP = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
+        print(client_IP)
         data = request.json
         print(data)
-        return {"response": str(request.remote_addr) + " sends: " + str(data['msg']) + '\n'}
+        return {"response": str(client_IP) + " sends: " + str(data['msg']) + '\n'}
 
 @app.route('/data')
 def get_time():

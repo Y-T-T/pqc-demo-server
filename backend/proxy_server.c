@@ -9,8 +9,9 @@
 #include <sys/time.h>
 
 #define PROXY_PORT 80
-#define SERVER_PORT 5000
+#define SERVER_PORT 8080
 #define BUFFER_SIZE 4096
+#define SPLIT_STR "\r\n\r\n"
 
 int proxy_sock, client_sock, server_sock;
 struct sockaddr_in proxy_addr, client_addr, server_addr;
@@ -170,6 +171,12 @@ void parseRequest(char *buffer){
     free(filetype);
 }
 
+char * getHeaderExtension(char *client_ip){
+    char *headerOpt = "\r\nX-Forwarded-For: ";
+    char *headerStr = concatString(headerOpt, client_ip);
+    return headerStr;
+}
+
 int main() {
     socklen_t client_addr_size = sizeof(client_addr);
     char buffer[BUFFER_SIZE], client_ip[INET_ADDRSTRLEN];
@@ -199,9 +206,30 @@ int main() {
         //     memset(buffer, 0, sizeof(buffer));
         // }
 
+        int update_forwarded_header = 0;
+        char *headerStr = getHeaderExtension(client_ip);
         while((bytes = recv(client_sock, buffer, BUFFER_SIZE, 0)) > 0){
-            printf("(Client)\nBUFFER bytes:%ld\n%s\n", bytes, buffer);
-            send(server_sock, buffer, bytes, 0);
+            if(update_forwarded_header == 0){
+                char *newBuffer = (char *)malloc(strlen(buffer)+strlen(headerStr)+1);
+                char *pch = strstr(buffer, SPLIT_STR);
+                if(pch != NULL){
+                    int index = pch - buffer;
+                    strncpy(newBuffer, buffer, index);
+                    strcpy(newBuffer + index, headerStr);
+                    strcat(newBuffer, pch);
+                    update_forwarded_header = 1;
+
+                    printf("(Client)\nBUFFER bytes:%ld\n%s\n", strlen(newBuffer), newBuffer);
+                    send(server_sock, newBuffer, strlen(newBuffer), 0);
+                    free(headerStr);
+                    free(newBuffer);
+                }
+                else printf("Pattern not found\n");
+            }
+            else{
+                printf("(Client)\nBUFFER bytes:%ld\n%s\n", bytes, buffer);
+                send(server_sock, buffer, bytes, 0);
+            }
             memset(buffer, 0, sizeof(buffer));
         }
 
