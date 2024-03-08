@@ -1,4 +1,8 @@
 /__pycache__
-proxy_server
 .python-version
 test*
+
+build/
+libraries/
+cert/
+proxy_server
