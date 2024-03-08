@@ -13,7 +13,7 @@ add_subdirectory(server)
 add_subdirectory(tls)
 
 
-set(SOURCE_FILES x25519_kyber768_draft00_handshake.c)
+set(SOURCE_FILES proxy_server.c)
 
 add_executable(
     test_server
