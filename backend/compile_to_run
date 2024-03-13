@@ -1,0 +1,19 @@
+#!/bin/bash
+
+op=$1
+if [[ "$op" = "-t" ]]; then
+    # build to stable
+    dst=src/proxy_server_test.c
+else
+    # build to test
+    dst=src/proxy_server_stable.c
+fi
+
+src=tls/x25519_kyber768_draft00_handshake.c
+
+cp "$src" "$dst"
+
+cd build
+cmake .. & make || { echo "Compile failed."; exit 1; }
+
+./test_server

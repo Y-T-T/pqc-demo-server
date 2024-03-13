@@ -23,17 +23,17 @@ static void print_public_key(RSA *rsa) {
     BIO_free(bio);
 }
 
-uchar * sign_msg(const uchar *msg, const uint32_t msg_len, const EVP_MD *alg, size_t *siglen){
+u8 * sign_msg(const u8 *msg, const uint32_t msg_len, const EVP_MD *alg, size_t *siglen){
     
     EVP_PKEY_CTX *pctx;
     EVP_MD_CTX *mdctx = NULL;
     EVP_PKEY *pkey = NULL;
-    uchar *sig = NULL;
+    u8 *sig = NULL;
     FILE *keyfile;
     // RSA *rsa = NULL;
 
     // keyfile = fopen("cert/server.key", "rb");
-    keyfile = fopen("cert/www.pqc-demo.xyz.key", "rb");
+    keyfile = fopen("../src/cert/www.pqc-demo.xyz.key", "rb");
     if (!keyfile) {
         fprintf(stderr, "Unable to open key file\n");
         // return 1;
@@ -103,7 +103,7 @@ uchar * sign_msg(const uchar *msg, const uint32_t msg_len, const EVP_MD *alg, si
     return sig;
 }
 
-int verify_msg(const uchar *msg, const size_t msg_len, const EVP_MD *alg, const uchar *sig, const size_t siglen){
+int verify_msg(const u8 *msg, const size_t msg_len, const EVP_MD *alg, const u8 *sig, const size_t siglen){
     
     EVP_PKEY *pkey = NULL;
     EVP_PKEY_CTX *pctx;
@@ -112,7 +112,7 @@ int verify_msg(const uchar *msg, const size_t msg_len, const EVP_MD *alg, const 
     RSA *rsa = NULL;
 
     // keyfile = fopen("cert/server.key", "rb");
-    keyfile = fopen("cert/www.pqc-demo.xyz.key", "rb");
+    keyfile = fopen("../src/cert/www.pqc-demo.xyz.key", "rb");
     if (!keyfile) {
         fprintf(stderr, "Unable to open key file\n");
         // return 1;
@@ -176,7 +176,7 @@ int verify_msg(const uchar *msg, const size_t msg_len, const EVP_MD *alg, const 
 
 // int main(int argc, char const *argv[])
 // {
-//     uchar *msg = NULL;
+//     u8 *msg = NULL;
 //     uint64_t msg_len;
 //     size_t sig_len;
 
@@ -184,7 +184,7 @@ int verify_msg(const uchar *msg, const size_t msg_len, const EVP_MD *alg, const 
 
 //     // print_bytes(msg, msg_len);
 
-//     uchar *sig = NULL;
+//     u8 *sig = NULL;
 
 //     sig = sign_msg(msg, msg_len, SHA256, &sig_len);
 

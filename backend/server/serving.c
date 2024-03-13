@@ -1,74 +1,7 @@
-#include <server/serving.h>
+#include <base/serving.h>
 #include <base/param.h>
 
-void error(const char *msg){
-    perror(msg);
-    exit(1);
-}
-
-void print_bytes(uchar *data, size_t len){
-    for (int i = 0; i < len; i++){
-        // printf("%02x", data[i]);
-        printf("%02x ", data[i]);
-        if((i + 1) % 32 == 0)
-            printf("\n");
-    }
-    printf("\n");
-}
-
-void get_ct_tag(uchar *ct, int *ct_len, uchar *tag, uchar *buffer, size_t len){
-    *ct_len = len - TAG_SIZE;
-    memcpy(ct, buffer, *ct_len);
-    memcpy(tag, buffer + (len - TAG_SIZE), TAG_SIZE);
-}
-
-uchar * concat_uc_str(const uchar *arr1, const size_t len1, const uchar *arr2, const size_t len2) {
-    uchar *result = malloc(len1 + len2);
-    if (result == NULL)
-        return NULL;
-    memcpy(result, arr1, len1);
-    memcpy(result + len1, arr2, len2);
-
-    return result;
-}
-
-int cmp_uc_str(const uchar *arr1, const uchar *arr2, const size_t len){
-    for(size_t i = 0; i < len; i++){
-        if(arr1[i] != arr2[i])
-            return 0;
-    }
-    return 1;
-}
-
-char * concatString(const char *str1, const char *str2){
-    char *res = (char *)malloc(strlen(str1)+strlen(str2)+1);
-    if(res == NULL) error("Failed to allocate memory.\n");
-    strcpy(res, str1);
-    strcat(res, str2);
-    return res;
-}
-
-static uchar hexCharToByte(char c) {
-    if (c >= '0' && c <= '9') return c - '0';
-    if (c >= 'a' && c <= 'f') return 10 + c - 'a';
-    if (c >= 'A' && c <= 'F') return 10 + c - 'A';
-    return 0;
-}
-
-void hexStringToBytes(const char *str, uchar *bytes, size_t length) {
-    for (size_t i = 0; i < length; i += 2) {
-        bytes[i / 2] = (hexCharToByte(str[i]) << 4) + hexCharToByte(str[i + 1]);
-    }
-}
-
-void insert_header_len(uchar *header, uint32_t len, int start, int end){
-    for(int i = end; i >= start; i--){
-        header[i] = len & 0xFF;
-        len >>= 8;
-    }
-}
-
-ssize_t send_response(int sockfd, const uchar* data, size_t data_len) {
+ssize_t send_response(int sockfd, const u8* data, size_t data_len) {
     size_t total_sent = 0;
     while (total_sent < data_len) {
         size_t to_send = min(BUFFER_SIZE, data_len - total_sent);
@@ -105,7 +38,7 @@ void send_backend_response(int sockfd, const char *filename, const char *filetyp
     free(filepath);
 }
 
-void read_file(uchar **data, uint64_t *len, const char *filename, int type){
+void read_file(u8 **data, uint64_t *len, const char *filename, int type){
     FILE* file = NULL;
     if(type == 1){
         file = fopen(filename, "r");
@@ -118,7 +51,7 @@ void read_file(uchar **data, uint64_t *len, const char *filename, int type){
         int i = 0;
 
         while (fscanf(file, "%x", &temp) == 1)
-            (*data)[i++] = (uchar)temp;
+            (*data)[i++] = (u8)temp;
 
         *len = i;
 
@@ -136,7 +69,7 @@ void read_file(uchar **data, uint64_t *len, const char *filename, int type){
 
         int i = 0;
 
-        uchar *temp = realloc(*data, (*len) * sizeof(uchar));
+        u8 *temp = realloc(*data, (*len) * sizeof(u8));
         if(temp == NULL)
             fputs("Memory error", stderr);
         else

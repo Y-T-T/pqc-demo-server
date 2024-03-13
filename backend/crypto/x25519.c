@@ -816,7 +816,7 @@ void read_key(const char *filename, u8 *key) {
 	return;
 }
 
-int x25519_keygen(uchar *priv_key, uchar *pub_key){
+int x25519_keygen(HANDSHAKE_HELLO_MSG_CTX *hello_msg){
     EVP_PKEY_CTX *pctx;
     EVP_PKEY *keypair = NULL;
 
@@ -838,29 +838,34 @@ int x25519_keygen(uchar *priv_key, uchar *pub_key){
         return 1;
     }
 
-    size_t priv_key_len = 0;
-    EVP_PKEY_get_raw_private_key(keypair, NULL, &priv_key_len);
-    priv_key = realloc(priv_key, priv_key_len);
-    if (EVP_PKEY_get_raw_private_key(keypair, priv_key, &priv_key_len) <= 0) {
+    size_t skey_len = 0;
+    EVP_PKEY_get_raw_private_key(keypair, NULL, &skey_len);
+    u8 *skey = malloc(skey_len);
+    if (EVP_PKEY_get_raw_private_key(keypair, skey, &skey_len) <= 0) {
         printf("Error getting raw private key\n");
         EVP_PKEY_free(keypair);
         EVP_PKEY_CTX_free(pctx);
-        free(priv_key);
+        free(skey);
         return 1;
     }
 
-    size_t pub_key_len = 0;
-    EVP_PKEY_get_raw_public_key(keypair, NULL, &pub_key_len);
-    pub_key = realloc(pub_key, pub_key_len);
-    if (EVP_PKEY_get_raw_public_key(keypair, pub_key, &pub_key_len) <= 0) {
+    size_t pkey_len = 0;
+    EVP_PKEY_get_raw_public_key(keypair, NULL, &pkey_len);
+    u8 *pkey = malloc(pkey_len);
+    if (EVP_PKEY_get_raw_public_key(keypair, pkey, &pkey_len) <= 0) {
         printf("Error getting raw public key\n");
         EVP_PKEY_free(keypair);
         EVP_PKEY_CTX_free(pctx);
-        free(priv_key);
-        free(pub_key);
+        free(skey);
+        free(pkey);
         return 1;
     }
 
+    memcpy(hello_msg->extensions.key_share.key.x25519.pkey, pkey, pkey_len);
+    memcpy(hello_msg->extensions.key_share.key.x25519.skey, skey, skey_len);
+
+    free(skey);
+    free(pkey);
     EVP_PKEY_free(keypair);
     EVP_PKEY_CTX_free(pctx);
     return 0;
