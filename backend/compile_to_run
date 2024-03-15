@@ -1,5 +1,7 @@
 #!/bin/bash
 
+pip install -r requirements.txt
+
 op=$1
 if [[ "$op" = "-t" ]]; then
     # build to stable

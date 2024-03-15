@@ -6,6 +6,10 @@ This is a proxy server demonstration based on TLS 1.3 hybrid post-quantum encryp
 
 `X25519Kyber768Draft00` definition: https://www.ietf.org/archive/id/draft-tls-westerbaan-xyber768d00-02.html
 
+### requirement
+
+* `Python >= 3.10.12`
+
 ### framework
 
 * Backend: `flask`
