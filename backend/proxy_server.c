@@ -76,8 +76,9 @@ int main() {
     HANDSHAKE_HELLO_MSG_CTX client_hello, server_hello;
 
     SERVER_HELLO_MSG server_hello_response;
-    u8 client_hello_msg[BUFFER_SIZE];
-    ssize_t client_hello_msg_len;
+    u8 client_msg[BUFFER_SIZE];
+
+    ssize_t client_msg_len;
 
     TLS13_KEY_EXCHANGE_CTX key_ctx;
     SESSION_POOL session_pool[MAX_POOL_SIZE];
@@ -98,24 +99,24 @@ int main() {
         }
         
         /* read client hello */
-        client_hello_msg_len = 0;
+        client_msg_len = 0;
         memset(buffer, 0, BUFFER_SIZE);
-        memset(client_hello_msg, 0, BUFFER_SIZE);
+        memset(client_msg, 0, BUFFER_SIZE);
         while((bytes = recv(client_sock, buffer, BUFFER_SIZE, 0)) > 0){
             printf("Client hello (length:%zd):\n", bytes);
             print_bytes(buffer, bytes);
             printf("\n");
-            memcpy(client_hello_msg + client_hello_msg_len, buffer, bytes);
-            client_hello_msg_len += bytes;
+            memcpy(client_msg + client_msg_len, buffer, bytes);
+            client_msg_len += bytes;
         }
-        parse_client_hello(client_hello_msg, client_hello_msg_len, &client_hello);
+        parse_client_hello(client_msg, client_msg_len, &client_hello);
 
         /* to-do: check session ticket */
         // pool_idx = check_session_ticket(&client_hello, session_pool, session_pool_len);
         client_hello.extensions.session_ticket.valid = 0;
         
         if(!client_hello.extensions.session_ticket.valid){
-            update_transcript_hash_msg(&transcript_hash_msg, client_hello_msg + 5, client_hello_msg_len - 5);
+            update_transcript_hash_msg(&transcript_hash_msg, client_msg + 5, client_msg_len - 5);
             
             /* Generate:
              * 1. Server x25519 keypair
@@ -173,16 +174,19 @@ int main() {
             printf("\n");
 
             /* recieve client finished */
-            buffer_len = 0;
+            buffer_len = 0, client_msg_len = 0;
+            memset(buffer, 0, BUFFER_SIZE);
+            memset(client_msg, 0, BUFFER_SIZE);
             if((bytes = recv(client_sock, buffer, BUFFER_SIZE, 0)) > 0){
                 printf("Client response (len: %zd):\n", bytes);
                 print_bytes(buffer, bytes);
                 printf("\n");
-                buffer_len += bytes;
+                memcpy(client_msg + client_msg_len, buffer, bytes);
+                client_msg_len += bytes;
             }
 
             /* verify client finished */
-            if(verify_client_finished(buffer, buffer_len, &key_ctx, transcript_hash_msg))
+            if(verify_client_finished(client_msg, client_msg_len, &key_ctx, transcript_hash_msg))
                 printf("Error: Client finished data verified failed.\n");
             else printf("Client finished data verified success.\n");
             
