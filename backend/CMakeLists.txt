@@ -7,8 +7,8 @@ find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-add_subdirectory(crypto)
 add_subdirectory(kyber)
+add_subdirectory(crypto)
 add_subdirectory(server)
 add_subdirectory(tls)
 
@@ -22,4 +22,4 @@ add_executable(
     ${SUBDIR_SOURCES}
     )
 
-target_link_libraries(test_server PUBLIC crypto kyber server tls ${OPENSSL_LIBRARIES})
+target_link_libraries(test_server PUBLIC ${OPENSSL_LIBRARIES} kyber crypto server tls)
