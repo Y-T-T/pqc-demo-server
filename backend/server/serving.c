@@ -21,7 +21,7 @@ size_t send_msg(int sockfd, BUFFER_POOL *pool, const size_t pool_idx){
     return 1;
 }
 
-ssize_t send_response(int sockfd, const u8* data, size_t data_len) {
+ssize_t send_response(int sockfd, const u8 *data, size_t data_len) {
     size_t to_send;
     ssize_t sent, total_sent = 0;
     while (total_sent < data_len) {
