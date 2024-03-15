@@ -1,1 +1,4 @@
-cd backend && ./compile_to_run
+#!/bin/bash
+
+(cd frontend && npm run build)
+(cd backend && ./compile_to_run)
