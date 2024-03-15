@@ -22,4 +22,4 @@ add_executable(
     ${SUBDIR_SOURCES}
     )
 
-target_link_libraries(test_server PUBLIC ${OPENSSL_LIBRARIES} kyber crypto server tls)
+target_link_libraries(test_server PUBLIC tls server crypto kyber ${OPENSSL_LIBRARIES})
