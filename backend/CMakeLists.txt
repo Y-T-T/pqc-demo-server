@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.12)
 
 project(PQC_SERVER)
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Debug)
+endif()
+
 find_package(OpenSSL REQUIRED)
 
 include_directories(${OPENSSL_INCLUDE_DIR})
