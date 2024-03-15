@@ -1,4 +1,5 @@
 #include <tls/tls13_enc_dec.h>
+#include <base/base.h>
 #include <crypto/aes_256_gcm.h>
 #include <crypto/openssl_base.h>
 

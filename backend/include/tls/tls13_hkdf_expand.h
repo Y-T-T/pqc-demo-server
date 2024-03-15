@@ -1,14 +1,7 @@
 #ifndef TLS13_HKDF_EXPAND_H
 #define TLS13_HKDF_EXPAND_H
 
-#include <base/base.h>
-
-struct HkdfLabel
-{
-    uint16_t length;
-    char label[256];
-    u8 context[256];
-};
+#include <base/types.h>
 
 u8 * sha256(const u8 *message, const size_t message_len);
 u8 * sha384(const u8 *message, const size_t message_len);

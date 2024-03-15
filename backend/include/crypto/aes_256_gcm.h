@@ -1,8 +1,7 @@
 #ifndef AES_256_GCM_H
 #define AES_256_GCM_H
 
-#include <base/base.h>
-#include <crypto/openssl_base.h>
+#include <base/types.h>
 
 u8 * build_iv(u8 *iv, uint64_t *seq);
 int evp_enc_init(EVP_CIPHER_CTX **ctx, u8 key[EVP_MAX_KEY_LENGTH], u8 iv[EVP_MAX_IV_LENGTH]);

@@ -1,5 +1,4 @@
 #include <crypto/aes_256_gcm.h>
-#include <base/param.h>
 
 u8 * build_iv(u8 *iv, uint64_t *seq){
 

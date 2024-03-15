@@ -1,5 +1,6 @@
 #include <crypto/x25519kyber768draft00.h>
 #include <crypto/x25519.h>
+#include <base/base.h>
 #include <kyber/kem.h>
 #include <base/serving.h>
 

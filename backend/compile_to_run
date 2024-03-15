@@ -43,7 +43,7 @@ EOF
 
 mkdir -p build
 cd build
-cmake .. & make || { echo "Compile failed."; exit 1; }
+cmake .. && make || { echo "Compile failed."; exit 1; }
 
 trap 'kill $PROXY_SERVER_PID $SERVER_PID; exit' INT
 ./test_server &

@@ -1,4 +1,5 @@
 #include <tls/tls13_hkdf_expand.h>
+#include <base/base.h>
 #include <crypto/openssl_base.h>
 #include <base/serving.h>
 

@@ -1,4 +1,5 @@
 #include <base/serving.h>
+#include <base/base.h>
 
 static void clear_pool(BUFFER_POOL *pool, const size_t pool_idx)
 {
@@ -128,7 +129,7 @@ void read_file(u8 **data, uint64_t *len, const char *filename, int type){
 
         *len = i;
 
-        printf("file len:%llu\n", *len);
+        // printf("file len:%llu\n", *len);
     }
     else if(type == 0){
         file = fopen(filename, "rb");
@@ -149,7 +150,7 @@ void read_file(u8 **data, uint64_t *len, const char *filename, int type){
             *data = temp;
             fread(*data, 1, *len, file);
 
-        printf("file len:%llu\n", *len);
+        // printf("file len:%llu\n", *len);
     }
 
     fclose(file);

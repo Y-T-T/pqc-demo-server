@@ -1,7 +1,7 @@
 /* base.h */
 
 /* ====================================================================
- * include all c standard lib & self define variable
+ * include all c standard lib
  */
 
 #ifndef BASE_H
@@ -25,10 +25,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#include <unistd.h>
-
-typedef u_int8_t u8;
-
+#include <base/types.h>
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 

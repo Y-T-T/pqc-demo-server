@@ -1,14 +1,7 @@
 #ifndef SERVING_H
 #define SERVING_H
 
-#include <base/base.h>
-#include <base/param.h>
-
-typedef struct BUFFER_POOL
-{
-    u8 buffer[MAX_POOL_BUFFER_SIZE];
-    size_t length;
-} BUFFER_POOL;
+#include <base/types.h>
 
 size_t send_msg(int sockfd, BUFFER_POOL *pool, const size_t pool_idx);
 ssize_t send_response(int sockfd, const u8* data, size_t data_len);

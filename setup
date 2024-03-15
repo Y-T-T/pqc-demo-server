@@ -1,4 +1,4 @@
 #!/bin/bash
 
-(cd frontend && npm -i && npm run build)
+(cd frontend && npm install && npm run build)
 (cd backend && ./compile_to_run)

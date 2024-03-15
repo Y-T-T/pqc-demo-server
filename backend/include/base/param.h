@@ -1,7 +1,7 @@
 #ifndef PARAM_H
 #define PARAM_H
 
-#include <tls/rsa_pss_rsae_sha_t.h>
+#include <crypto/openssl_base.h>
 
 #define SERVER_ADDR "127.0.0.1"
 #define PROXY_PORT 443
@@ -16,6 +16,9 @@
 
 #define SS_LEN 64
 #define ZERO_STR "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+
+#define ALG_SHA256 EVP_sha256()
+#define ALG_SHA384 EVP_sha384()
 
 #define SIGN_ALG ALG_SHA256
 #define CRT_SIZE 0xFFFFFF

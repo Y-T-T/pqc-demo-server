@@ -1,8 +1,7 @@
 #ifndef X25519_H
 #define X25519_H
 
-#include <base/base.h>
-#include <tls/handshake.h>
+#include <base/types.h>
 
 // typedef uint8_t u8;
 typedef int32_t s32;
