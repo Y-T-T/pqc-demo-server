@@ -6,7 +6,13 @@
 #include <tls/tls13_hkdf_expand.h>
 
 void parse_client_hello(u8 *buffer, ssize_t buffer_len, HANDSHAKE_HELLO_MSG_CTX *client_hello){
-    int idx = 0, eidx, j, len;
+
+    client_hello->cipher_suites = NULL;
+    client_hello->extensions.session_ticket.ticket = NULL;
+    client_hello->extensions.supported_versions.versions = NULL;
+    client_hello->extensions.pre_share_key.identity = NULL;
+    client_hello->extensions.pre_share_key.psk_binders = NULL;
+    int idx = 0, eidx, len;
 
     // Record Header
     len = 5;
@@ -69,83 +75,140 @@ void parse_client_hello(u8 *buffer, ssize_t buffer_len, HANDSHAKE_HELLO_MSG_CTX 
     idx += len;
     eidx = idx;
 
-    // Find session_ticket extension
-    while(!(buffer[idx] == 0x00 && buffer[idx+1] == 0x23)){
-        len = buffer[idx+2] << 8 | buffer[idx+3];
-        idx += len + 4;
-    }
-    // printf("Find: %02x %02x\n", buffer[idx], buffer[idx+1]);
-
-    len = buffer[idx+2] << 8 | buffer[idx+3];
-    if(len != 0){
-        client_hello->extensions.session_ticket.ticket = malloc(len * sizeof(u8));
-        memcpy(client_hello->extensions.session_ticket.ticket, &buffer[idx], len);
-    }
-    else client_hello->extensions.session_ticket.ticket = NULL;
+    /* Session ticket is in pre_share_key extension in TLS 1.3*/
+    // // Find session_ticket extension
+    // while(!(buffer[idx] == 0x00 && buffer[idx+1] == 0x23)){
+    //     len = buffer[idx+2] << 8 | buffer[idx+3];
+    //     idx += len + 4;
+    // }
+    // // printf("Find: %02x %02x\n", buffer[idx], buffer[idx+1]);
+    // if(idx < buffer_len){
+    //     len = buffer[idx+2] << 8 | buffer[idx+3];
+    //     if(len != 0){
+    //         client_hello->extensions.session_ticket.ticket = malloc(len * sizeof(u8));
+    //         memcpy(client_hello->extensions.session_ticket.ticket, &buffer[idx], len);
+    //     }
+    //     else client_hello->extensions.session_ticket.ticket = NULL;
+    // }
+    // else printf("session_ticket extension not found.\n");
 
     idx = eidx;
     // Find supported_versions extension
-    while(!(buffer[idx] == 0x00 && buffer[idx+1] == 0x2b)){
+    while(!(buffer[idx] == 0x00 && buffer[idx+1] == 0x2b) && idx < buffer_len){
         len = buffer[idx+2] << 8 | buffer[idx+3];
         idx += len + 4;
     }
-    len = buffer[idx+2] << 8 | buffer[idx+3];
-    if(len != 0){
-        memcpy(client_hello->extensions.supported_versions.header, &buffer[idx], 2);
-        memcpy(client_hello->extensions.supported_versions.length, &buffer[idx+2], 2);
-        client_hello->extensions.supported_versions.versions = malloc(len * sizeof(u8));
-        memcpy(client_hello->extensions.supported_versions.versions, &buffer[idx+4], len);
+    if(idx < buffer_len){
+        len = buffer[idx+2] << 8 | buffer[idx+3];
+        if(len != 0){
+            memcpy(client_hello->extensions.supported_versions.header, &buffer[idx], 2);
+            memcpy(client_hello->extensions.supported_versions.length, &buffer[idx+2], 2);
+            client_hello->extensions.supported_versions.versions = malloc(len * sizeof(u8));
+            memcpy(client_hello->extensions.supported_versions.versions, &buffer[idx+4], len);
+        }
     }
-    else client_hello->extensions.supported_versions.versions = NULL;
+    else printf("supported_versions extensions not found.\n");
 
     idx = eidx;
     // Find key_share extension
-    while(!(buffer[idx] == 0x00 && buffer[idx+1] == 0x33)){
+    while(!(buffer[idx] == 0x00 && buffer[idx+1] == 0x33) && idx < buffer_len){
         len = buffer[idx+2] << 8 | buffer[idx+3];
         idx += len + 4;
     }
     // printf("Find: %02x %02x\n", buffer[i], buffer[i+1]);
+    if(idx < buffer_len){
 
-    len = 2;
-    memcpy(client_hello->extensions.key_share.header, &buffer[idx], len);
-    // print_bytes(client_hello->extensions.key_share.header, len);
-    idx += len;
+        len = 2;
+        memcpy(client_hello->extensions.key_share.header, &buffer[idx], len);
+        // print_bytes(client_hello->extensions.key_share.header, len);
+        idx += len;
 
-    len = 2;
-    memcpy(client_hello->extensions.key_share.record_length, &buffer[idx], len);
-    // print_bytes(client_hello->extensions.key_share.record_length, len);
-    idx += len;
+        len = 2;
+        memcpy(client_hello->extensions.key_share.record_length, &buffer[idx], len);
+        // print_bytes(client_hello->extensions.key_share.record_length, len);
+        idx += len;
 
-    len = 2;
-    memcpy(client_hello->extensions.key_share.keys_length, &buffer[idx], len);
-    // print_bytes(client_hello->extensions.key_share.keys_length, len);
-    idx += len;
+        len = 2;
+        memcpy(client_hello->extensions.key_share.keys_length, &buffer[idx], len);
+        // print_bytes(client_hello->extensions.key_share.keys_length, len);
+        idx += len;
 
-    // Find X25519Kyber768Draft00 public key
-    while(!(buffer[idx] == 0x63 && buffer[idx+1] == 0x99)){
+        // Find X25519Kyber768Draft00 public key
+        while(!(buffer[idx] == 0x63 && buffer[idx+1] == 0x99) && idx < buffer_len){
+            len = buffer[idx+2] << 8 | buffer[idx+3];
+            idx += len + 4;
+        }
+        if(idx < buffer_len){
+            len = 2;
+            memcpy(client_hello->extensions.key_share.key_change_method, &buffer[idx], len);
+            // print_bytes(client_hello->extensions.key_share.key_change_method, len);
+            idx += len;
+
+            len = 2;
+            memcpy(client_hello->extensions.key_share.key_len, &buffer[idx], len);
+            // print_bytes(client_hello->extensions.key_share.key_len, len);
+            idx += len;
+
+            len = 32;
+            memcpy(client_hello->extensions.key_share.key.x25519.pkey, &buffer[idx], len);
+            // print_bytes(client_hello->extensions.key_share.key.x25519.pkey, len);
+            idx += len;
+            
+            len = KYBER_INDCPA_PUBLICKEYBYTES;
+            memcpy(client_hello->extensions.key_share.key.kyber768.pkey, &buffer[idx], len);
+            // print_bytes(client_hello->extensions.key_share.key.kyber768.pkey, len);
+        }
+        else printf("X25519Kyber768Draft00 key not found.\n");
+    }
+    else printf("key_share extension not found.\n");
+
+    idx = eidx;
+    // Find pre_share_key extension
+    while(!(buffer[idx] == 0x00 && buffer[idx+1] == 0x29) && idx < buffer_len){
         len = buffer[idx+2] << 8 | buffer[idx+3];
         idx += len + 4;
     }
+    if(idx < buffer_len){
+        len = 2;
+        memcpy(client_hello->extensions.pre_share_key.type, &buffer[idx], len);
+        idx += len;
 
-    len = 2;
-    memcpy(client_hello->extensions.key_share.key_change_method, &buffer[idx], len);
-    // print_bytes(client_hello->extensions.key_share.key_change_method, len);
-    idx += len;
+        len = 2;
+        memcpy(client_hello->extensions.pre_share_key.record_length, &buffer[idx], len);
+        idx += len;
 
-    len = 2;
-    memcpy(client_hello->extensions.key_share.key_len, &buffer[idx], len);
-    // print_bytes(client_hello->extensions.key_share.key_len, len);
-    idx += len;
+        len = 2;
+        memcpy(client_hello->extensions.pre_share_key.identities_len, &buffer[idx], len);
+        idx += len;
 
-    len = 32;
-    memcpy(client_hello->extensions.key_share.key.x25519.pkey, &buffer[idx], len);
-    // print_bytes(client_hello->extensions.key_share.key.x25519.pkey, len);
-    idx += len;
-    
-    len = KYBER_INDCPA_PUBLICKEYBYTES;
-    memcpy(client_hello->extensions.key_share.key.kyber768.pkey, &buffer[idx], len);
-    // print_bytes(client_hello->extensions.key_share.key.kyber768.pkey, len);
+        len = 2;
+        memcpy(client_hello->extensions.pre_share_key.identity_len, &buffer[idx], len);
+        idx += len;
 
+        len = client_hello->extensions.pre_share_key.identity_len[0] << 8 | client_hello->extensions.pre_share_key.identity_len[1];
+        if(len > 0){
+            client_hello->extensions.pre_share_key.identity = malloc(len * sizeof(u8));
+            memcpy(client_hello->extensions.pre_share_key.identity, &buffer[idx], len);
+        }
+        else client_hello->extensions.pre_share_key.identity = NULL;
+        idx += len;
+
+        len = 4;
+        memcpy(client_hello->extensions.pre_share_key.ticket_age, &buffer[idx], len);
+        idx += len;
+
+        len = 2;
+        memcpy(client_hello->extensions.pre_share_key.psk_binders_len, &buffer[idx], len);
+        idx += len;
+
+        len = client_hello->extensions.pre_share_key.psk_binders_len[0] << 8 | client_hello->extensions.pre_share_key.psk_binders_len[1];
+        if(len > 0){
+            client_hello->extensions.pre_share_key.psk_binders = malloc(len * sizeof(u8));
+            memcpy(client_hello->extensions.pre_share_key.psk_binders, &buffer[idx], len);
+        }
+        idx += len;
+    }
+    else printf("pre_share_key extension not found.\n");
 }
 
 void update_transcript_hash_msg(TRANSCRIPT_HASH_MSG *transcript_hash_msg, u8 *msg, size_t msg_len){
@@ -160,8 +223,19 @@ void update_transcript_hash_msg(TRANSCRIPT_HASH_MSG *transcript_hash_msg, u8 *ms
     transcript_hash_msg->hash_len = SHA384_DIGEST_LENGTH;
 }
 
-void check_session_ticket(HANDSHAKE_HELLO_MSG_CTX *client_hello){
+int check_session_ticket(HANDSHAKE_HELLO_MSG_CTX *client_hello, const SESSION_POOL **pool, const size_t pool_len){
     // to-do
+    int idx = 0;
+    client_hello->extensions.session_ticket.valid = 0;
+    while(idx < pool_len){
+        if(cmp_uc_str(client_hello->extensions.pre_share_key.identity, 
+            pool[idx]->session_ticket.ticket, TICKET_SIZE)){
+            client_hello->extensions.session_ticket.valid = 1;
+            return idx;
+        }
+        idx++;
+    }
+    return -1;
 }
 
 void add_change_cipher_spec(SERVER_HELLO_MSG *msg){
@@ -176,9 +250,21 @@ void add_change_cipher_spec(SERVER_HELLO_MSG *msg){
 }
 
 void TLS13_KEY_EXCHANGE_CTX_INIT(TLS13_KEY_EXCHANGE_CTX *ctx){
+    ctx->shared_secret = NULL;
+    ctx->handshake_secret = NULL;
+    ctx->server_handshake_traffic_secret = NULL;
+    ctx->client_handshake_traffic_secret = NULL;
+    ctx->server_handshake_key = NULL;
+    ctx->client_handshake_key = NULL;
+    ctx->server_handshake_iv = NULL;
     ctx->s_hs_seq = 0;
+    ctx->client_handshake_iv = NULL;
     ctx->c_hs_seq = 0;
+    ctx->server_master_key = NULL;
+    ctx->client_master_key = NULL;
+    ctx->server_master_iv = NULL;
     ctx->s_ap_seq = 0;
+    ctx->client_master_iv = NULL;
     ctx->c_ap_seq = 0;
 }
 
@@ -699,15 +785,134 @@ int verify_client_finished(u8 *client_finished, size_t client_finished_len, TLS1
     return 1;
 }
 
+static SESSION_TICKET gen_new_ticket(){
+    SESSION_TICKET new_ticket = {
+        1,
+        {0x04, 0x00, 0x00, 0xd5},
+        {0x00, 0x00, 0x1c, 0x20},
+        {0x00, 0x00, 0x00, 0x00},
+        {0x08, 0x00 ,0x00 ,0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+        NULL, 0,
+        {0x00, 0x00}};
+
+    new_ticket.ticket = malloc(TICKET_SIZE * sizeof(u8));
+    get_random(new_ticket.ticket, TICKET_SIZE);
+
+    u8 ticket_len[] = {0x00, 0xc0};
+    new_ticket.ticket = concat_uc_str(ticket_len, 2, new_ticket.ticket, TICKET_SIZE);
+    new_ticket.ticket_len = TICKET_SIZE + 2;
+    // printf("Session ticket:\n");
+    // print_bytes(new_ticket.ticket, new_ticket.ticket_len);
+    return new_ticket;
+}
+
+u8 * generate_session_ticket(TLS13_KEY_EXCHANGE_CTX *key_ctx, SESSION_POOL *pool, size_t *pool_len, size_t *ticket_msg_len){
+    if(*pool_len < MAX_POOL_SIZE){
+        pool[*pool_len].session_ticket = gen_new_ticket();
+        pool[*pool_len].key_ctx = key_ctx;
+    }
+    else{
+        printf("Error: Session pool is full.\n");
+        return NULL;
+    }
+    // printf("Session ticket:\n");
+    // print_bytes(pool[*pool_len].session_ticket.ticket, pool[*pool_len].session_ticket.ticket_len);
+
+    EVP_CIPHER_CTX *ctx;
+    u8 *iv = NULL;
+    u8 *pt = NULL;
+    u8 tag[TAG_SIZE];
+    int outlen = 0, pt_len, ct_len = 0;
+
+    u8 record_header[] = {0x17, 0x03, 0x03, 0x00, 0x00};
+    u8 record_type[] = {0x16};
+    size_t record_header_len = 5, length;
+
+    u8 *session_ticket = NULL;
+    size_t session_ticket_len;
+    u8 *output = NULL;
+
+    session_ticket = concat_uc_str(
+        pool[(*pool_len)].session_ticket.handshake_header, 4,
+        pool[(*pool_len)].session_ticket.ticket_lifetime, 4
+    );
+    session_ticket_len = 4 + 4;
+
+    session_ticket = concat_uc_str(
+        session_ticket, session_ticket_len,
+        pool[(*pool_len)].session_ticket.ticket_age_add, 4
+    );
+    session_ticket_len += 4;
+
+    session_ticket = concat_uc_str(
+        session_ticket, session_ticket_len,
+        pool[(*pool_len)].session_ticket.ticket_nonce, 9
+    );
+    session_ticket_len += 9;
+
+    session_ticket = concat_uc_str(
+        session_ticket, session_ticket_len,
+        pool[(*pool_len)].session_ticket.ticket, pool[(*pool_len)].session_ticket.ticket_len
+    );
+    session_ticket_len += pool[(*pool_len)].session_ticket.ticket_len;
+
+    session_ticket = concat_uc_str(
+        session_ticket, session_ticket_len,
+        pool[(*pool_len)].session_ticket.extensions, 2
+    );
+    session_ticket_len += 2;
+
+    // printf("Session ticket:\n");
+    // print_bytes(session_ticket, session_ticket_len);
+
+    length = session_ticket_len + 1 + TAG_SIZE;
+    insert_header_len(record_header, length, 3, 4);
+
+    pt = concat_uc_str(session_ticket, session_ticket_len, record_type, 1);
+    pt_len = session_ticket_len + 1;
+    // printf("pt:\n");
+    // print_bytes(pt, pt_len);
+
+    u8 *ct = malloc(pt_len * sizeof(u8));
+    iv = build_iv(pool[*pool_len].key_ctx->server_master_iv, &(pool[*pool_len].key_ctx->s_ap_seq));
+    // printf("server_ap_seq: %llu\n", pool[*pool_len].key_ctx->s_ap_seq);
+    evp_enc_init(&ctx, pool[*pool_len].key_ctx->server_master_key, iv);
+    enc_update(ctx, record_header, record_header_len, NULL, &ct_len, &outlen);
+    enc_update(ctx, pt, pt_len, ct, &ct_len, &outlen);
+    complete_enc(&ctx, ct, &ct_len, &outlen, tag);
+    // printf("ct:\n");
+    // print_bytes(ct, ct_len);
+
+    // printf("tag:\n");
+    // print_bytes(tag, TAG_SIZE);
+    // printf("\n");
+
+    if(ct_len + TAG_SIZE != length)
+        printf("Wrap record encryption error.\n");
+    else{
+        output = concat_uc_str(ct, ct_len, tag, TAG_SIZE);
+        output = concat_uc_str(record_header, record_header_len, output, length);
+    }
+
+    *ticket_msg_len = record_header_len + length;
+    (*pool_len)++;
+    free(iv);
+    free(pt);
+    free(ct);
+    return output;
+}
+
 void TRANSCRIPT_HASH_MSG_FREE(TRANSCRIPT_HASH_MSG *ctx){
     if(ctx->msg != NULL){
         free(ctx->msg);
         ctx->msg = NULL;
     }
+    ctx->msg_len = 0;
     if(ctx->hash != NULL){
         free(ctx->hash);
         ctx->hash = NULL;
     }
+    ctx->hash_len = 0;
 }
 
 void SERVER_HELLO_MSG_FREE(SERVER_HELLO_MSG *ctx){
@@ -715,26 +920,32 @@ void SERVER_HELLO_MSG_FREE(SERVER_HELLO_MSG *ctx){
         free(ctx->hello_msg);
         ctx->hello_msg = NULL;
     }
+    ctx->hello_msg_len = 0;
     if(ctx->extensions != NULL){
         free(ctx->extensions);
         ctx->extensions = NULL;
     }
+    ctx->extensions_len = 0;
     if(ctx->cert != NULL){
         free(ctx->cert);
         ctx->cert = NULL;
     }
+    ctx->cert_len = 0;
     if(ctx->cert_verify != NULL){
         free(ctx->cert_verify);
         ctx->cert_verify = NULL;
     }
+    ctx->cert_verify_len = 0;
     if(ctx->finished != NULL){
         free(ctx->finished);
         ctx->finished = NULL;
     }
+    ctx->finished_len = 0;
     if(ctx->all_msg != NULL){
         free(ctx->all_msg);
         ctx->all_msg = NULL;
     }
+    ctx->all_msg_len = 0;
 }
 
 void HANDSHAKE_HELLO_MSG_CTX_FREE(HANDSHAKE_HELLO_MSG_CTX *ctx){
@@ -749,6 +960,14 @@ void HANDSHAKE_HELLO_MSG_CTX_FREE(HANDSHAKE_HELLO_MSG_CTX *ctx){
     if(ctx->extensions.supported_versions.versions != NULL){
         free(ctx->extensions.supported_versions.versions);
         ctx->extensions.supported_versions.versions = NULL;
+    }
+    if(ctx->extensions.pre_share_key.identity != NULL){
+        free(ctx->extensions.pre_share_key.identity );
+        ctx->extensions.pre_share_key.identity  = NULL;
+    }
+    if(ctx->extensions.pre_share_key.psk_binders != NULL){
+        free(ctx->extensions.pre_share_key.psk_binders);
+        ctx->extensions.pre_share_key.psk_binders = NULL;
     }
 }
 
@@ -800,5 +1019,18 @@ void TLS13_KEY_EXCHANGE_CTX_FREE(TLS13_KEY_EXCHANGE_CTX *ctx){
     if(ctx->client_master_iv != NULL){
         free(ctx->client_master_iv);
         ctx->client_master_iv = NULL;
+    }
+}
+
+void SESSION_POOL_FREE(SESSION_POOL *ctx, size_t size){
+    for(int i = 0; i < size; i++){
+        if(ctx[i].key_ctx != NULL){
+            TLS13_KEY_EXCHANGE_CTX_FREE(ctx[i].key_ctx);
+            ctx[i].key_ctx = NULL;
+        }
+        if(ctx[i].session_ticket.ticket != NULL){
+            free(ctx[i].session_ticket.ticket);
+            ctx[i].session_ticket.ticket = NULL;
+        }
     }
 }

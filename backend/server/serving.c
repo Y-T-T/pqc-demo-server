@@ -1,11 +1,31 @@
 #include <base/serving.h>
-#include <base/param.h>
+
+static void clear_pool(BUFFER_POOL *pool, const size_t pool_idx)
+{
+    for(int i = 0; i < pool_idx; i++){
+        memset(pool[i].buffer, 0, MAX_POOL_BUFFER_SIZE);
+        pool[i].length = 0;
+    }    
+}
+
+size_t send_msg(int sockfd, BUFFER_POOL *pool, const size_t pool_idx){
+    for(int i = 0; i < pool_idx; i++){
+        send(sockfd, pool[i].buffer, pool[i].length, 0);
+        printf("Send msg (length:%zd):\n", pool[i].length);
+        if(pool[i].length < MAX_PRINT_BYTES)
+            print_bytes(pool[i].buffer, pool[i].length);
+        else printf("Omitted... (too long to print)\n");
+        printf("\n");
+    }
+    return 1;
+}
 
 ssize_t send_response(int sockfd, const u8* data, size_t data_len) {
-    size_t total_sent = 0;
+    size_t to_send;
+    ssize_t sent, total_sent = 0;
     while (total_sent < data_len) {
-        size_t to_send = min(BUFFER_SIZE, data_len - total_sent);
-        ssize_t sent = send(sockfd, data + total_sent, to_send, 0);
+        to_send = min(BUFFER_SIZE, data_len - total_sent);
+        sent = send(sockfd, data + total_sent, to_send, 0);
         if (sent == -1) {
             fprintf(stderr, "%s\n", "Send error");
             break;
@@ -13,6 +33,59 @@ ssize_t send_response(int sockfd, const u8* data, size_t data_len) {
         total_sent += sent;
     }
     return total_sent;
+}
+
+size_t recv_msg(int sockfd, BUFFER_POOL *pool, size_t *pool_idx){
+    
+    clear_pool(pool, *pool_idx);
+    *pool_idx = 0;
+    ssize_t bytes;
+
+    while((bytes = recv(sockfd, pool[*pool_idx].buffer, BUFFER_SIZE, 0)) > 0){
+        printf("Receive msg (length:%zd):\n", bytes);
+        if(bytes < MAX_PRINT_BYTES)
+            print_bytes(pool[*pool_idx].buffer, bytes);
+        else printf("Omitted... (too long to print)\n");
+        printf("\n");
+        pool[*pool_idx].length = bytes;
+        (*pool_idx)++;
+    }
+    return 1;
+}
+
+char * getHeaderExtension(const char *client_ip){
+    char *headerOpt = "\r\nX-Forwarded-For: ";
+    char *headerStr = concatString(headerOpt, client_ip);
+    return headerStr;
+}
+
+char * insertXFor(char *buffer, const char *client_ip){
+    char *headerStr = getHeaderExtension(client_ip);
+    char *newBuffer = (char *)malloc(strlen(buffer)+strlen(headerStr)+1);
+    char *pch = strstr(buffer, SPLIT_STR);
+    if(pch != NULL){
+        int index = pch - buffer;
+        strncpy(newBuffer, buffer, index);
+        strcpy(newBuffer + index, headerStr);
+        strcat(newBuffer, pch);
+        free(headerStr);
+    }
+    else
+        newBuffer = NULL;
+    return newBuffer;
+}
+
+size_t update_forwarded_header(BUFFER_POOL *pool, const size_t pool_idx, const char *ip){
+    char *buffer = NULL;
+    for(int i = 0; i < pool_idx; i++){
+        buffer = insertXFor((char *)pool[i].buffer, ip);
+        memset(pool[i].buffer, 0, pool[i].length);
+        pool[i].length = strlen(buffer);
+        memcpy(pool[i].buffer, buffer, strlen(buffer));
+        free(buffer);
+        buffer = NULL;
+    }
+    return 1;
 }
 
 void send_backend_response(int sockfd, const char *filename, const char *filetype){

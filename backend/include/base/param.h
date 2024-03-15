@@ -4,10 +4,9 @@
 #include <tls/rsa_pss_rsae_sha_t.h>
 
 #define SERVER_ADDR "127.0.0.1"
-#define PORT 443
-#define PROXY_PORT 80
+#define PROXY_PORT 443
 #define SERVER_PORT 8080
-#define BUFFER_SIZE USHRT_MAX
+#define BUFFER_SIZE 5000 // 0x3e80 // Maximum TLS record size is 16 KB (16384 bytes), 0x3e80 = 16000 
 #define TAG_SIZE 16
 #define SPLIT_STR "\r\n\r\n"
 
@@ -22,5 +21,10 @@
 #define CRT_SIZE 0xFFFFFF
 #define SIGN_SIZE 0xFFFFFF
 
-// #define ENC_SESSION_TICKET_SIZE 234
+#define TICKET_SIZE 0xC0
+#define MAX_POOL_SIZE 100
+#define TLS_RECORDER_HEADER_LENGTH 5
+#define MAX_POOL_BUFFER_SIZE BUFFER_SIZE + TLS_RECORDER_HEADER_LENGTH + 1 + TAG_SIZE
+#define MAX_PRINT_BYTES 3000
+
 #endif

@@ -55,14 +55,14 @@ void hexStringToBytes(const char *str, u8 *bytes, size_t length) {
     }
 }
 
-void get_random(u8 *random){
+void get_random(u8 *random, size_t bytes){
     int fd;
     fd = open("/dev/urandom", O_RDONLY);
     if (fd < 0) {
         perror("Failed to open /dev/urandom");
         return;
     }
-    if (read(fd, random, 32) != 32) {
+    if (read(fd, random, bytes) != bytes) {
         perror("Failed to read random data");
         close(fd);
         return;

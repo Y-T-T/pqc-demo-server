@@ -13,7 +13,42 @@ src=tls/x25519_kyber768_draft00_handshake.c
 
 cp "$src" "$dst"
 
+cat << EOF > CMakeLists.txt
+cmake_minimum_required(VERSION 3.12)
+
+project(PQC_SERVER)
+
+find_package(OpenSSL REQUIRED)
+
+include_directories(\${OPENSSL_INCLUDE_DIR})
+include_directories(\${CMAKE_SOURCE_DIR}/include)
+
+add_subdirectory(crypto)
+add_subdirectory(kyber)
+add_subdirectory(server)
+add_subdirectory(tls)
+
+
+set(SOURCE_FILES $dst)
+
+add_executable(
+    test_server
+    
+    \${SOURCE_FILES}
+    \${SUBDIR_SOURCES}
+    )
+
+target_link_libraries(test_server PUBLIC crypto kyber server tls \${OPENSSL_LIBRARIES})
+EOF
+
+mkdir -p build
 cd build
 cmake .. & make || { echo "Compile failed."; exit 1; }
 
-./test_server
+trap 'kill $PROXY_SERVER_PID $SERVER_PID; exit' INT
+./test_server &
+PROXY_SERVER_PID=$!
+python ../server.py &
+SERVER_PID=$!
+
+wait
