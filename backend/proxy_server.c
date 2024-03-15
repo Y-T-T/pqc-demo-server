@@ -99,11 +99,13 @@ int main() {
         
         /* read client hello */
         client_hello_msg_len = 0;
+        memset(buffer, 0, BUFFER_SIZE);
         memset(client_hello_msg, 0, BUFFER_SIZE);
-        while((bytes = recv(client_sock, client_hello_msg, BUFFER_SIZE, 0)) > 0){
+        while((bytes = recv(client_sock, buffer, BUFFER_SIZE, 0)) > 0){
             printf("Client hello (length:%zd):\n", bytes);
-            print_bytes(client_hello_msg, bytes);
+            print_bytes(buffer, bytes);
             printf("\n");
+            memcpy(client_hello_msg + client_hello_msg_len, buffer, bytes);
             client_hello_msg_len += bytes;
         }
         parse_client_hello(client_hello_msg, client_hello_msg_len, &client_hello);
