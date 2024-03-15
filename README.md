@@ -1,5 +1,6 @@
 ![Linux](https://img.shields.io/badge/platform-Linux-green.svg)
 ![macOS](https://img.shields.io/badge/platform-macOS-green.svg)
+![X25519Kyber768Draft00](https://img.shields.io/badge/TLS-X25519Kyber768Draft00-88292f)
 
 ## PQC demo server
 
