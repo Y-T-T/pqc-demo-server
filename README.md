@@ -1,32 +1,32 @@
+![Linux](https://img.shields.io/badge/platform-Linux-green.svg)
+![macOS](https://img.shields.io/badge/platform-macOS-green.svg)
+
 ## PQC demo server
 
-### intro
+### Intro
 
 This is a proxy server demonstration based on TLS 1.3 hybrid post-quantum encryption protocol encryption:`X25519Kyber768Draft00`
 
 `X25519Kyber768Draft00` definition: https://www.ietf.org/archive/id/draft-tls-westerbaan-xyber768d00-02.html
 
-### requirement
+### Requirement
 
-* `Python >= 3.10.12`
-* `cmake >= 3.12`
-* `openssl >= 3.0.2`
-* `npm >= 10.2.4`
+* ![python](https://img.shields.io/badge/python-3.10.12-blue)
+* ![cmake](https://img.shields.io/badge/cmake-3.12-blue)
+* ![openssl](https://img.shields.io/badge/openssl-3.0.2-blue)
+* ![npm](https://img.shields.io/badge/npm-v10.2.4-blue)
 
-### framework
+### Framework
 
-* Backend: `flask`
-* Proxy: `c`
-* Frontend: `reactJS`
+* ![backend](https://img.shields.io/badge/backend-flask-689689)
+* ![proxy](https://img.shields.io/badge/proxy-C-689689)
+* ![frontend](https://img.shields.io/badge/frontend-reactJS-689689)
 
-## Platform Support
-
-![Linux](https://img.shields.io/badge/platform-Linux-green.svg)
-![macOS](https://img.shields.io/badge/platform-macOS-green.svg)
+### Platform Support
 
 This software is optimized for **Linux** and **macOS** platforms.
 
-### setup
+### Setup
 
 1. Package the server certificate in the `cert` folder, and then copy the entire `cert` folder to the `src` folder
 2. run `setup` script (Use `sudo` if necessary)
