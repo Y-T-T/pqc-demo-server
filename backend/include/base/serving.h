@@ -2,6 +2,7 @@
 #define SERVING_H
 
 #include <base/types.h>
+#include <signal.h>
 
 int proxy_sock, client_sock, server_sock;
 struct sockaddr_in proxy_addr, client_addr, server_addr;
