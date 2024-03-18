@@ -1,6 +1,10 @@
 #include <base/serving.h>
 #include <base/base.h>
 
+int proxy_sock, client_sock, server_sock;
+struct sockaddr_in proxy_addr, client_addr, server_addr;
+volatile sig_atomic_t timeout;
+
 void sigint_handler(int sig){
     printf("\nClosing proxy socket...");
     close(proxy_sock);
