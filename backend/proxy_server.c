@@ -6,61 +6,6 @@
 #include <tls/tls13_enc_dec.h>
 #include <tls/tls13_hkdf_expand.h>
 
-int proxy_sock, client_sock, server_sock;
-struct sockaddr_in proxy_addr, client_addr, server_addr;
-
-void sigint_handler(int sig){
-    printf("\nClosing proxy socket...");
-    close(proxy_sock);
-    printf("Done.\nExit.\n");
-    exit(0);
-}
-
-void loadProxySetting(){
-    int yes = 1;
-    if(setsockopt(proxy_sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) error("Error on setsockopt.\n");
-}
-
-void loadTimeoutSetting(int sockfd){
-    struct timeval tv;
-    tv.tv_sec = 1;
-    tv.tv_usec = 0;
-    if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv)) == -1) error("Error on setsockopt.\n");
-}
-
-void createProxySocket(){
-    proxy_sock = socket(AF_INET, SOCK_STREAM, 0);
-    loadProxySetting();
-    if (proxy_sock < 0) error("ERROR creating proxy socket.\n");
-    else printf("Proxy socket created.\n");
-
-    memset((char *)&proxy_addr, 0, sizeof(proxy_addr));
-    proxy_addr.sin_family = AF_INET;
-    proxy_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    proxy_addr.sin_port = htons(PROXY_PORT);
-
-    if (bind(proxy_sock, (struct sockaddr *)&proxy_addr, sizeof(proxy_addr)) < 0) error("ERROR on binding.\n");
-    else printf("Proxy socket bind on port %d.\n", PROXY_PORT);
-
-    if (listen(proxy_sock, 10) < 0) error("Listen failed");
-    else printf("Listening on port %d...\n", PROXY_PORT);
-}
-
-void connectToGunicornServer(){
-    server_sock = socket(AF_INET, SOCK_STREAM, 0);
-    loadTimeoutSetting(server_sock);
-    if (server_sock < 0) error("ERROR creating socket to server.\n");
-    else printf("The socket to server created.\n");
-
-    memset((char *)&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = inet_addr(SERVER_ADDR);
-    server_addr.sin_port = htons(SERVER_PORT);
-
-    if (connect(server_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) error("ERROR connecting to server.\n");
-    else printf("Connected to server.\n");
-}
-
 int main() {
     socklen_t client_addr_size = sizeof(client_addr);
     u8 buffer[BUFFER_SIZE];
@@ -103,9 +48,9 @@ int main() {
         memset(buffer, 0, BUFFER_SIZE);
         memset(client_msg, 0, BUFFER_SIZE);
         while((bytes = recv(client_sock, buffer, BUFFER_SIZE, 0)) > 0){
-            printf("Client hello (length:%zd):\n", bytes);
-            print_bytes(buffer, bytes);
-            printf("\n");
+            // printf("Client hello (length:%zd):\n", bytes);
+            // print_bytes(buffer, bytes);
+            // printf("\n");
             memcpy(client_msg + client_msg_len, buffer, bytes);
             client_msg_len += bytes;
         }
@@ -169,18 +114,18 @@ int main() {
             if(send_response(client_sock, server_hello_response.all_msg, server_hello_response.all_msg_len) != server_hello_response.all_msg_len)
                 printf("send error.\n");
             
-            printf("Server send:\n");
-            print_bytes(server_hello_response.all_msg, server_hello_response.all_msg_len);
-            printf("\n");
+            // printf("Server send:\n");
+            // print_bytes(server_hello_response.all_msg, server_hello_response.all_msg_len);
+            // printf("\n");
 
             /* recieve client finished */
             buffer_len = 0, client_msg_len = 0;
             memset(buffer, 0, BUFFER_SIZE);
             memset(client_msg, 0, BUFFER_SIZE);
             if((bytes = recv(client_sock, buffer, BUFFER_SIZE, 0)) > 0){
-                printf("Client response (len: %zd):\n", bytes);
-                print_bytes(buffer, bytes);
-                printf("\n");
+                // printf("Client finished response (len: %zd):\n", bytes);
+                // print_bytes(buffer, bytes);
+                // printf("\n");
                 memcpy(client_msg + client_msg_len, buffer, bytes);
                 client_msg_len += bytes;
             }
@@ -192,15 +137,15 @@ int main() {
             
             /* Send 2 session ticket */
             session_ticket_msg = generate_session_ticket(&key_ctx, session_pool, &session_pool_len, &session_ticket_msg_len);
-            printf("Session ticket 1:\n");
-            print_bytes(session_ticket_msg, session_ticket_msg_len);
+            // printf("Session ticket 1:\n");
+            // print_bytes(session_ticket_msg, session_ticket_msg_len);
             if(send_response(client_sock, session_ticket_msg, session_ticket_msg_len) != session_ticket_msg_len)
                 printf("send error.\n");
             
             memset(session_ticket_msg, 0, session_ticket_msg_len);
             session_ticket_msg = generate_session_ticket(&key_ctx, session_pool, &session_pool_len, &session_ticket_msg_len);
-            printf("Session ticket 2:\n");
-            print_bytes(session_ticket_msg, session_ticket_msg_len);
+            // printf("Session ticket 2:\n");
+            // print_bytes(session_ticket_msg, session_ticket_msg_len);
             if(send_response(client_sock, session_ticket_msg, session_ticket_msg_len) != session_ticket_msg_len)
                 printf("send error.\n");
         }
@@ -221,35 +166,54 @@ int main() {
         HANDSHAKE_HELLO_MSG_CTX_FREE(&client_hello);
         HANDSHAKE_HELLO_MSG_CTX_FREE(&server_hello);
 
-        printf("\nTLS handshake ends.\n");
-        printf("==============================\n");
-        printf("Start data exchange.\n");
-        printf("==============================\n");
-        printf("\n");
+        printf("%s", TLS_END_START_DATA_EXCHANGE);
 
         connectToGunicornServer();
 
         /* recieve applicaion data */
+        timeout = 0;
+        size_t conn_times = 0;
+        signal(SIGALRM, handle_alarm);
+        alarm(KEEP_ALIVE_TIMEOUT);
 
-        recv_msg(client_sock, buffer_pool, &buffer_pool_idx);
-        // for(int i = 0; i < buffer_pool_idx; i++){
-        //     printf("Pool[%d]: Recieved:(len: %zd):\n", i, buffer_pool[i].length);
-        //     print_bytes(buffer_pool[i].buffer, buffer_pool[i].length);
-        // }
+        while(!timeout && conn_times < MAX_KEEP_ALIVE_CONN_TIMES){
+            recv_msg(client_sock, buffer_pool, &buffer_pool_idx);
+            conn_times++;
+            // for(int i = 0; i < buffer_pool_idx; i++){
+            //     printf("Pool[%d]: Recieved:(len: %zd):\n", i, buffer_pool[i].length);
+            //     print_bytes(buffer_pool[i].buffer, buffer_pool[i].length);
+            // }
 
-        client_msg_dec(buffer_pool, buffer_pool_idx, &key_ctx);
-        // for(int i = 0; i < buffer_pool_idx; i++)
-        //     printf("Pool[%d]: Decryped:(len: %zd):\n%s\n", i, buffer_pool[i].length, buffer_pool[i].buffer);
-        
-        update_forwarded_header(buffer_pool, buffer_pool_idx, client_ip);
-        // for(int i = 0; i < buffer_pool_idx; i++)
-        //     printf("Pool[%d]: Add X-Forwarded:(len: %zd):\n%s\n", i, buffer_pool[i].length, buffer_pool[i].buffer);
+            client_msg_dec(buffer_pool, buffer_pool_idx, &key_ctx);
+            for(int i = 0; i < buffer_pool_idx; i++)
+                printf("{Client} decrypted request (pool:%d, len:%zd):\n%s\n", i, buffer_pool[i].length, buffer_pool[i].buffer);
+            
+            if(conn_is_keep_alive(buffer_pool, buffer_pool_idx))
+                alarm(KEEP_ALIVE_TIMEOUT);
+            update_forwarded_header(buffer_pool, buffer_pool_idx, client_ip);
+            // for(int i = 0; i < buffer_pool_idx; i++)
+            //     printf("Pool[%d]: Add X-Forwarded:(len: %zd):\n%s\n", i, buffer_pool[i].length, buffer_pool[i].buffer);
 
-        send_msg(server_sock, buffer_pool, buffer_pool_idx);
+            send_msg(server_sock, buffer_pool, buffer_pool_idx);
 
-        recv_msg(server_sock, buffer_pool, &buffer_pool_idx);
-        if(server_msg_enc(buffer_pool, buffer_pool_idx, &key_ctx))
-            send_msg(client_sock, buffer_pool, buffer_pool_idx);
+            recv_msg(server_sock, buffer_pool, &buffer_pool_idx);
+            for(int i = 0; i < buffer_pool_idx; i++){
+                printf("{Server} response (pool:%d, len:%zd):\n", i, buffer_pool[i].length);
+                if(buffer_pool[i].length < MAX_PRINT_BYTES)
+                    printf("%s\n", buffer_pool[i].buffer);
+                else printf("Omitted... (too long to print)\n");
+            }
+            // update_keep_alive_header(buffer_pool, buffer_pool_idx);
+            // for(int i = 0; i < buffer_pool_idx; i++)
+            //     printf("Pool[%d]: Add Keep-Alive:(len: %zd):\n%s\n", i, buffer_pool[i].length, buffer_pool[i].buffer);
+
+            if(server_msg_enc(buffer_pool, buffer_pool_idx, &key_ctx))
+                send_msg(client_sock, buffer_pool, buffer_pool_idx);
+            
+            // printf("Connection times: %zd\n", conn_times);
+        }
+
+        if(timeout) printf("Time out. Closing connection...\n");
 
         // printf("Server response(length:%lu):\n", strlen(testHttpResponse));
         // printf("%s\n", testHttpResponse);
@@ -265,11 +229,11 @@ int main() {
         printf("Done.\nClosing server socket...");
         close(server_sock);
         printf("Done.\n==============================\n");
+        TLS13_KEY_EXCHANGE_CTX_FREE(&key_ctx);
     }
 
     close(proxy_sock);
     
-    TLS13_KEY_EXCHANGE_CTX_FREE(&key_ctx);
     SESSION_POOL_FREE(session_pool, session_pool_len);
     free(session_ticket_msg);
 

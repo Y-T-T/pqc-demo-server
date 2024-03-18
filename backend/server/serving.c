@@ -1,22 +1,81 @@
 #include <base/serving.h>
 #include <base/base.h>
 
+void sigint_handler(int sig){
+    printf("\nClosing proxy socket...");
+    close(proxy_sock);
+    printf("Done.\nExit.\n");
+    exit(0);
+}
+
+void handle_alarm(int sig){
+    timeout = 1;
+}
+
+void loadProxySetting(){
+    int yes = 1;
+    if(setsockopt(proxy_sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) error("Error on setsockopt.\n");
+}
+
+void loadTimeoutSetting(int sockfd){
+    struct timeval tv;
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
+    if(setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv)) == -1) error("Error on setsockopt.\n");
+}
+
+void createProxySocket(){
+    proxy_sock = socket(AF_INET, SOCK_STREAM, 0);
+    loadProxySetting();
+    if (proxy_sock < 0) error("ERROR creating proxy socket.\n");
+    else printf("Proxy socket created.\n");
+
+    memset((char *)&proxy_addr, 0, sizeof(proxy_addr));
+    proxy_addr.sin_family = AF_INET;
+    proxy_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    proxy_addr.sin_port = htons(PROXY_PORT);
+
+    if (bind(proxy_sock, (struct sockaddr *)&proxy_addr, sizeof(proxy_addr)) < 0) error("ERROR on binding.\n");
+    else printf("Proxy socket bind on port %d.\n", PROXY_PORT);
+
+    if (listen(proxy_sock, 10) < 0) error("Listen failed");
+    else printf("Listening on port %d...\n", PROXY_PORT);
+}
+
+void connectToGunicornServer(){
+    server_sock = socket(AF_INET, SOCK_STREAM, 0);
+    loadTimeoutSetting(server_sock);
+    if (server_sock < 0) error("ERROR creating socket to server.\n");
+    else printf("The socket to server created.\n");
+
+    memset((char *)&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = inet_addr(SERVER_ADDR);
+    server_addr.sin_port = htons(SERVER_PORT);
+
+    if (connect(server_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) error("ERROR connecting to server.\n");
+    else printf("Connected to server.\n");
+}
+
 static void clear_pool(BUFFER_POOL *pool, const size_t pool_idx)
 {
     for(int i = 0; i < pool_idx; i++){
         memset(pool[i].buffer, 0, MAX_POOL_BUFFER_SIZE);
         pool[i].length = 0;
-    }    
+    }
 }
 
 size_t send_msg(int sockfd, BUFFER_POOL *pool, const size_t pool_idx){
     for(int i = 0; i < pool_idx; i++){
-        send(sockfd, pool[i].buffer, pool[i].length, 0);
-        printf("Send msg (length:%zd):\n", pool[i].length);
-        if(pool[i].length < MAX_PRINT_BYTES)
-            print_bytes(pool[i].buffer, pool[i].length);
-        else printf("Omitted... (too long to print)\n");
-        printf("\n");
+        if(send(sockfd, pool[i].buffer, pool[i].length, 0) == -1)
+            perror("Send failed.");
+        else {
+            // printf("Send msg (length:%zd):\n", pool[i].length);
+            // if(pool[i].length < MAX_PRINT_BYTES)
+            //     print_bytes(pool[i].buffer, pool[i].length);
+            // else printf("Omitted... (too long to print)\n");
+            // printf("\n");
+        }
     }
     return 1;
 }
@@ -28,7 +87,7 @@ ssize_t send_response(int sockfd, const u8 *data, size_t data_len) {
         to_send = min(BUFFER_SIZE, data_len - total_sent);
         sent = send(sockfd, data + total_sent, to_send, 0);
         if (sent == -1) {
-            fprintf(stderr, "%s\n", "Send error");
+            perror("Send failed.");
             break;
         }
         total_sent += sent;
@@ -43,25 +102,20 @@ size_t recv_msg(int sockfd, BUFFER_POOL *pool, size_t *pool_idx){
     ssize_t bytes;
 
     while((bytes = recv(sockfd, pool[*pool_idx].buffer, BUFFER_SIZE, 0)) > 0){
-        printf("Receive msg (length:%zd):\n", bytes);
-        if(bytes < MAX_PRINT_BYTES)
-            print_bytes(pool[*pool_idx].buffer, bytes);
-        else printf("Omitted... (too long to print)\n");
-        printf("\n");
+        // printf("Receive msg (length:%zd):\n", bytes);
+        // if(bytes < MAX_PRINT_BYTES)
+        //     print_bytes(pool[*pool_idx].buffer, bytes);
+        // else printf("Omitted... (too long to print)\n");
+        // printf("\n");
         pool[*pool_idx].length = bytes;
         (*pool_idx)++;
     }
     return 1;
 }
 
-char * getHeaderExtension(const char *client_ip){
+static char * insert_x_forwarded(char *buffer, const char *client_ip){
     char *headerOpt = "\r\nX-Forwarded-For: ";
     char *headerStr = concatString(headerOpt, client_ip);
-    return headerStr;
-}
-
-char * insertXFor(char *buffer, const char *client_ip){
-    char *headerStr = getHeaderExtension(client_ip);
     char *newBuffer = (char *)malloc(strlen(buffer)+strlen(headerStr)+1);
     char *pch = strstr(buffer, SPLIT_STR);
     if(pch != NULL){
@@ -69,24 +123,66 @@ char * insertXFor(char *buffer, const char *client_ip){
         strncpy(newBuffer, buffer, index);
         strcpy(newBuffer + index, headerStr);
         strcat(newBuffer, pch);
-        free(headerStr);
     }
     else
         newBuffer = NULL;
+    
+    free(headerStr);
     return newBuffer;
 }
 
 size_t update_forwarded_header(BUFFER_POOL *pool, const size_t pool_idx, const char *ip){
     char *buffer = NULL;
     for(int i = 0; i < pool_idx; i++){
-        buffer = insertXFor((char *)pool[i].buffer, ip);
+        buffer = insert_x_forwarded((char *)pool[i].buffer, ip);
         memset(pool[i].buffer, 0, pool[i].length);
         pool[i].length = strlen(buffer);
         memcpy(pool[i].buffer, buffer, strlen(buffer));
         free(buffer);
         buffer = NULL;
     }
-    return 1;
+    return 0;
+}
+
+size_t conn_is_keep_alive(const BUFFER_POOL *pool, const size_t pool_idx){
+    char *connection_type = "Connection: keep-alive";
+    for(int i = 0; i < pool_idx; i++){
+        if(strstr((char *)pool[i].buffer, connection_type) != NULL)
+            return 1;
+    }
+    return 0;
+}
+
+static char * insert_keep_alive(char *buffer){
+    char *connection_type = "Connection:";
+    char *headerStr = "Connection: keep-alive\r\nKeep-Alive: timeout=5, max=100\r\n\r\n";
+    char *newBuffer = (char *)malloc(strlen(buffer)+strlen(headerStr)+1);
+    char *pch = strstr(buffer, connection_type);
+    if(pch != NULL){
+        int index = pch - buffer;
+        strncpy(newBuffer, buffer, index);
+        strcpy(newBuffer + index, headerStr);
+    }
+    else
+        newBuffer = NULL;
+    
+    return newBuffer;
+}
+
+size_t update_keep_alive_header(BUFFER_POOL *pool, const size_t pool_idx){
+    char *buffer = NULL;
+    for(int i = 0; i < pool_idx; i++){
+        buffer = insert_keep_alive((char *)pool[i].buffer);
+        memset(pool[i].buffer, 0, pool[i].length);
+        pool[i].length = strlen(buffer);
+        memcpy(pool[i].buffer, buffer, strlen(buffer));
+        if(buffer != NULL){
+            free(buffer);
+            buffer = NULL;
+            return 1;
+        }
+    }
+    return 0;
 }
 
 void send_backend_response(int sockfd, const char *filename, const char *filetype){

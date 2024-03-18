@@ -17,36 +17,36 @@ void parse_client_hello(u8 *buffer, ssize_t buffer_len, HANDSHAKE_HELLO_MSG_CTX 
 
     // Record Header
     len = 5;
-    memcpy((*client_hello).record_header, &buffer[idx], len);
+    memcpy(client_hello->record_header, &buffer[idx], len);
     // printf("Record Header:\n");
     // print_bytes((*client_hello).record_header, len);
     idx += len;
 
     // Handshake Header
     len = 4;
-    memcpy((*client_hello).handshake_header, &buffer[idx], len);
+    memcpy(client_hello->handshake_header, &buffer[idx], len);
     // printf("Handshake Header:\n");
     // print_bytes((*client_hello).handshake_header, len);
     idx += len;
 
     // Client Version
     len = 2;
-    memcpy((*client_hello).tls_version, &buffer[idx], len);
+    memcpy(client_hello->tls_version, &buffer[idx], len);
     // printf("Client Version:\n");
     // print_bytes((*client_hello).tls_version, len);
     idx += len;
     
     // Client Random
     len = 32;
-    memcpy((*client_hello).random, &buffer[idx], len);
+    memcpy(client_hello->random, &buffer[idx], len);
     // printf("Client Random:\n");
     // print_bytes((*client_hello).random, len);
     idx += len;
 
     // Session ID
     len = 33;
-    memcpy((*client_hello).session_id.length, &buffer[idx], 1);
-    memcpy((*client_hello).session_id.id, &buffer[idx+1], 32);
+    memcpy(client_hello->session_id.length, &buffer[idx], 1);
+    memcpy(client_hello->session_id.id, &buffer[idx+1], 32);
     // printf("Session ID:\n");
     // print_bytes((*client_hello).session_id.length, 1);
     // print_bytes((*client_hello).session_id.id, 32);
@@ -63,14 +63,14 @@ void parse_client_hello(u8 *buffer, ssize_t buffer_len, HANDSHAKE_HELLO_MSG_CTX 
 
     // Compression Methods
     len = 2;
-    memcpy((*client_hello).compression_method, &buffer[idx], len);
+    memcpy(client_hello->compression_method, &buffer[idx], len);
     // printf("Compression Methods:\n");
     // print_bytes((*client_hello).compression_method, len);
     idx += len;
 
     // Extensions len
     len = 2;
-    memcpy((*client_hello).extensions_length, &buffer[idx], len);
+    memcpy(client_hello->extensions_length, &buffer[idx], len);
     // printf("Extensions len:\n");
     // print_bytes((*client_hello).extensions_length, len);
     idx += len;

@@ -30,4 +30,9 @@
 #define MAX_POOL_BUFFER_SIZE BUFFER_SIZE + TLS_RECORDER_HEADER_LENGTH + 1 + TAG_SIZE
 #define MAX_PRINT_BYTES 3000
 
+#define TLS_END_START_DATA_EXCHANGE "\nTLS handshake ends.\n==============================\nStart data exchange.\n==============================\n\n"
+
+#define MAX_KEEP_ALIVE_CONN_TIMES 100
+#define KEEP_ALIVE_TIMEOUT 10
+
 #endif

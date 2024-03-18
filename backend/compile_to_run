@@ -50,11 +50,13 @@ EOF
 mkdir -p build
 cd build
 cmake .. && make || { echo "Compile failed."; exit 1; }
+cd - 
 
 trap 'kill $PROXY_SERVER_PID $SERVER_PID; exit' INT
-./test_server &
-PROXY_SERVER_PID=$!
-python ../server.py &
+
+gunicorn -b localhost:8080 -w 4 --threads=10 --keep-alive 10 server:app --access-logfile access.log --error-logfile error.log &
 SERVER_PID=$!
+(cd build && ./test_server) &
+PROXY_SERVER_PID=$!
 
 wait
