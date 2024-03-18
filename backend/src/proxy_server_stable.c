@@ -7,15 +7,17 @@
 #include <tls/tls13_hkdf_expand.h>
 
 int main() {
+    extern int proxy_sock, client_sock, server_sock;
+    extern struct sockaddr_in proxy_addr, client_addr, server_addr;
+    extern volatile sig_atomic_t timeout;
     socklen_t client_addr_size = sizeof(client_addr);
     u8 buffer[BUFFER_SIZE];
     BUFFER_POOL buffer_pool[MAX_POOL_SIZE];
     size_t buffer_pool_idx;
     char client_ip[INET_ADDRSTRLEN];
     ssize_t bytes, buffer_len;
-    // uint32_t req_len;
     int connectionCount = 0;
-    char *testHttpResponse = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello World!";
+    // char *testHttpResponse = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello World!";
 
     TRANSCRIPT_HASH_MSG transcript_hash_msg = {NULL, 0, NULL, 0};
     HANDSHAKE_HELLO_MSG_CTX client_hello, server_hello;
