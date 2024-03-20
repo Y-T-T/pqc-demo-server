@@ -157,11 +157,11 @@ typedef struct BUFFER_POOL
     size_t length;
 } BUFFER_POOL;
 
-struct HkdfLabel
+typedef struct HkdfLabel
 {
     uint16_t length;
     char label[256];
     u8 context[256];
-};
+} HkdfLabel;
 
 #endif

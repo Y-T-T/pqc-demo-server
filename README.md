@@ -37,4 +37,5 @@ This is a [proxy server](https://www.pqc-demo.xyz) demonstration based on TLS 1.
 
 
 #### Notice
+* The cert folder must contain the X.509 certificate in `DER` format and the key in `PEM` format.
 * The gunicron server logs will be output to `backend/access.log` and `backend/error.log`

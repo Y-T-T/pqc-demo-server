@@ -16,7 +16,7 @@ int main() {
     size_t buffer_pool_idx;
     char client_ip[INET_ADDRSTRLEN];
     ssize_t bytes, buffer_len;
-    int connectionCount = 0;
+    int conn_count = 0;
     // char *testHttpResponse = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello World!";
 
     TRANSCRIPT_HASH_MSG transcript_hash_msg = {NULL, 0, NULL, 0};
@@ -41,7 +41,7 @@ int main() {
         if(client_sock < 0) error("ERROR on accept.\n");
         else {
             inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
-            printf("\n(Connection count:%d)\n==============================\n", ++connectionCount);
+            printf("\n(Connection count:%d)\n==============================\n", ++conn_count);
             printf("Accept client IP:%s\n", client_ip);
         }
         
@@ -144,7 +144,9 @@ int main() {
             if(send_response(client_sock, session_ticket_msg, session_ticket_msg_len) != session_ticket_msg_len)
                 printf("send error.\n");
             
-            memset(session_ticket_msg, 0, session_ticket_msg_len);
+            // memset(session_ticket_msg, 0, session_ticket_msg_len);
+            free(session_ticket_msg);
+            session_ticket_msg = NULL;
             session_ticket_msg = generate_session_ticket(&key_ctx, session_pool, &session_pool_len, &session_ticket_msg_len);
             // printf("Session ticket 2:\n");
             // print_bytes(session_ticket_msg, session_ticket_msg_len);

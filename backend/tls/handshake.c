@@ -900,6 +900,7 @@ u8 * generate_session_ticket(TLS13_KEY_EXCHANGE_CTX *key_ctx, SESSION_POOL *pool
     free(iv);
     free(pt);
     free(ct);
+    free(session_ticket);
     return output;
 }
 
