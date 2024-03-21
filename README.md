@@ -32,7 +32,7 @@ This is a [proxy server](https://www.pqc-demo.xyz) demonstration based on TLS 1.
 2. run `setup` script (Use `sudo` if necessary)
 
 #### Client
-1. Open your chrome and goto `chrome://flags/`
+1. Open the chrome and goto `chrome://flags/`
 2. Enable `TLS 1.3 hybridized Kyber support`
 
 
