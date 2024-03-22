@@ -95,7 +95,7 @@ size_t parse_client_hello(u8 *buffer, ssize_t buffer_len, HANDSHAKE_HELLO_MSG_CT
 
     idx = eidx;
     // Find supported_versions extension
-    while(!(buffer[idx] == 0x00 && buffer[idx+1] == 0x2b) && idx < buffer_len){
+    while(idx < buffer_len && !(buffer[idx] == 0x00 && buffer[idx+1] == 0x2b)){
         len = buffer[idx+2] << 8 | buffer[idx+3];
         idx += len + 4;
     }
@@ -112,7 +112,7 @@ size_t parse_client_hello(u8 *buffer, ssize_t buffer_len, HANDSHAKE_HELLO_MSG_CT
 
     idx = eidx;
     // Find key_share extension
-    while(!(buffer[idx] == 0x00 && buffer[idx+1] == 0x33) && idx < buffer_len){
+    while(idx < buffer_len && !(buffer[idx] == 0x00 && buffer[idx+1] == 0x33)){
         len = buffer[idx+2] << 8 | buffer[idx+3];
         idx += len + 4;
     }
@@ -171,7 +171,7 @@ size_t parse_client_hello(u8 *buffer, ssize_t buffer_len, HANDSHAKE_HELLO_MSG_CT
 
     idx = eidx;
     // Find pre_share_key extension
-    while(!(buffer[idx] == 0x00 && buffer[idx+1] == 0x29) && idx < buffer_len){
+    while(idx < buffer_len && !(buffer[idx] == 0x00 && buffer[idx+1] == 0x29)){
         len = buffer[idx+2] << 8 | buffer[idx+3];
         idx += len + 4;
     }
