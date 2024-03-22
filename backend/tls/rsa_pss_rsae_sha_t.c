@@ -2,6 +2,7 @@
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 #include <tls/rsa_pss_rsae_sha_t.h>
+#include <base/base.h>
 
 static void handleErrors(void) {
     ERR_print_errors_fp(stderr);
@@ -30,16 +31,20 @@ u8 * sign_msg(const u8 *msg, const uint32_t msg_len, const EVP_MD *alg, size_t *
     EVP_PKEY *pkey = NULL;
     u8 *sig = NULL;
     FILE *keyfile;
-    // RSA *rsa = NULL;
+    char *filepath = load_setting("key");
 
-    // keyfile = fopen("cert/server.key", "rb");
-    keyfile = fopen("../src/cert/www.pqc-demo.xyz.key", "rb");
+    if(!filepath){
+        // fprintf(stderr, "Setting error: key file name not found.\n");
+        return NULL;
+    }
+    keyfile = fopen(filepath, "rb");
     if (!keyfile) {
         fprintf(stderr, "Unable to open key file\n");
         // return 1;
     }
     pkey = PEM_read_PrivateKey(keyfile, NULL, NULL, NULL);
     fclose(keyfile);
+    free(filepath);
     if (!pkey) {
         fprintf(stderr, "Unable to read private key\n");
         // return 1;
@@ -109,18 +114,23 @@ int verify_msg(const u8 *msg, const size_t msg_len, const EVP_MD *alg, const u8 
     EVP_PKEY_CTX *pctx;
     EVP_MD_CTX *mdctx = NULL;
     FILE *keyfile;
+    char *filepath = load_setting("public_key");
     RSA *rsa = NULL;
 
-    // keyfile = fopen("cert/server.key", "rb");
-    keyfile = fopen("../src/cert/www.pqc-demo.xyz.key", "rb");
+    if(!filepath){
+        fprintf(stderr, "Setting error: public_key file name not found.\n");
+        return 0;
+    }
+    keyfile = fopen(filepath, "rb");
     if (!keyfile) {
         fprintf(stderr, "Unable to open key file\n");
         // return 1;
     }
     pkey = PEM_read_PrivateKey(keyfile, NULL, NULL, NULL);
     rsa = EVP_PKEY_get1_RSA(pkey);
-    // rsa = PEM_read_RSA_PUBKEY(keyfile, NULL, NULL, NULL);
+    
     fclose(keyfile);
+    free(filepath);
     if (!rsa) {
         fprintf(stderr, "Unable to read private key\n");
         // return 1;

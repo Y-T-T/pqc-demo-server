@@ -1,3 +1,6 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 #include <tls/tls13_hkdf_expand.h>
 #include <base/base.h>
 #include <crypto/openssl_base.h>
@@ -29,29 +32,18 @@ u8 * sha384(const u8 *message, const size_t message_len) {
     return md;
 }
 
-u8 * hmac_sha384(const u8 *key, const size_t key_len, const u8 *data, const size_t data_len) {
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    
+u8 * hmac_sha384(const u8 *key, const size_t key_len, const u8 *data, const size_t data_len) {    
     unsigned int len = EVP_MAX_MD_SIZE;
     u8 *md = malloc(len * sizeof(u8));
     
     HMAC_CTX *ctx = HMAC_CTX_new();
     
     HMAC_CTX_reset(ctx);
-    
     HMAC_Init_ex(ctx, key, key_len, EVP_sha384(), NULL);
-    
     HMAC_Update(ctx, data, data_len);
-    
     HMAC_Final(ctx, md, &len);
     
-    // printf("HMAC SHA-384: ");
-    // print_bytes(md, len);
-    
     HMAC_CTX_free(ctx);
-
-    #pragma GCC diagnostic pop
     
     return md;
 }
@@ -60,41 +52,6 @@ u8 * hkdf_extract(const u8 *salt, const size_t salt_len, const u8 *ikm,const siz
 
     size_t prk_len = EVP_MD_size(EVP_sha384());
     u8 *prk = malloc(EVP_MAX_MD_SIZE);
-
-    // EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
-    // if (!pctx) {
-    //     fprintf(stderr, "Failed to create EVP_PKEY_CTX\n");
-    //     return NULL;
-    // }
-
-    // if (EVP_PKEY_derive_init(pctx) <= 0) {
-    //     fprintf(stderr, "Failed to initialize derive operation\n");
-    //     EVP_PKEY_CTX_free(pctx);
-    //     return NULL;
-    // }
-
-    // if (EVP_PKEY_CTX_hkdf_mode(pctx, EVP_PKEY_HKDEF_MODE_EXTRACT_ONLY) <= 0) {
-    //     printf("Set EVP_PKEY_CTX_hkdf_mode error\n");
-    //     EVP_PKEY_CTX_free(pctx);
-    //     return NULL;
-    // }
-
-    // if (EVP_PKEY_CTX_set_hkdf_md(pctx, EVP_sha384()) <= 0 ||
-    //     EVP_PKEY_CTX_set1_hkdf_salt(pctx, salt, 0) <= 0 ||
-    //     EVP_PKEY_CTX_set1_hkdf_key(pctx, ikm, key_len) <= 0) {
-    //     fprintf(stderr, "Failed to set HKDF parameters\n");
-    //     EVP_PKEY_CTX_free(pctx);
-    //     return NULL;
-    // }
-
-    // if (EVP_PKEY_derive(pctx, prk, &prk_len) <= 0) {
-    //     fprintf(stderr, "HKDF-Extract failed\n");
-    //     EVP_PKEY_CTX_free(pctx);
-    //     return NULL;
-    // }
-
-    // EVP_PKEY_CTX_free(pctx);
-
     prk = hmac_sha384(salt, salt_len, ikm, key_len);
 
     return prk;
@@ -163,35 +120,6 @@ static u8 * hkdf_expand(const u8 *ss, const size_t ss_len, struct HkdfLabel hkdf
     // print_bytes(res, res_len);
     free(hexin);
     free(md);
-
-    // EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
-    // if (!pctx) {
-    //     printf("EVP_PKEY_CTX_new_id failed\n");
-    //     return NULL;
-    // }
-    // if (EVP_PKEY_derive_init(pctx) <= 0) {
-    //     printf("EVP_PKEY_derive_init failed\n");
-    //     EVP_PKEY_CTX_free(pctx);
-    //     return NULL;
-    // }
-    // if (EVP_PKEY_CTX_set_hkdf_md(pctx, EVP_sha384()) <= 0 ||
-    //     EVP_PKEY_CTX_set1_hkdf_key(pctx, ss, ss_len) <= 0 ||
-    //     EVP_PKEY_CTX_set1_hkdf_salt(pctx, NULL, 0) <= 0 ||
-    //     EVP_PKEY_CTX_add1_hkdf_info(pctx, res, out_len) <= 0) {
-    //         printf("set error\n");
-    //         EVP_PKEY_CTX_free(pctx);
-    //         return NULL;
-    // }
-
-    // size_t outlen = out_len;
-    // u8 *output = malloc(outlen);
-    // if (EVP_PKEY_derive(pctx, output, &outlen) <= 0) {
-    //     printf("EVP_PKEY_derive failed\n");
-    //     EVP_PKEY_CTX_free(pctx);
-    //     return NULL;
-    // }
-
-    // EVP_PKEY_CTX_free(pctx);
     return res;
 }
 
@@ -307,3 +235,6 @@ u8 * derive_secret(const u8 *ss, const size_t ss_len, const char *label, const u
 //     free(client_handshake_iv);
 //     return 0;
 // }
+
+
+#pragma GCC diagnostic pop

@@ -28,11 +28,12 @@ This is a [proxy server](https://www.pqc-demo.xyz) demonstration based on TLS 1.
 ### Setup
 
 #### Server
-1. Package the server certificate in the `cert` folder, and then copy the entire `cert` folder to the `src` folder
-2. run `setup` script (Use `sudo` if necessary)
+1. Put the server certificate in the `cert` folder, and then copy the entire `cert` folder to the `backend/src` folder
+2. Put the file names of the certificate and key into `backend/setting.conf`
+3. run `setup` script (Use `sudo` if necessary)
 
 #### Client
-1. Open the chrome and goto `chrome://flags/`
+1. Open the chrome and goto `chrome://flags`
 2. Enable `TLS 1.3 hybridized Kyber support`
 
 

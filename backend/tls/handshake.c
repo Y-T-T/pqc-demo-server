@@ -6,7 +6,7 @@
 #include <tls/tls13_hkdf_expand.h>
 #include <tls/rsa_pss_rsae_sha_t.h>
 
-void parse_client_hello(u8 *buffer, ssize_t buffer_len, HANDSHAKE_HELLO_MSG_CTX *client_hello){
+size_t parse_client_hello(u8 *buffer, ssize_t buffer_len, HANDSHAKE_HELLO_MSG_CTX *client_hello){
 
     client_hello->cipher_suites = NULL;
     client_hello->extensions.session_ticket.ticket = NULL;
@@ -159,9 +159,15 @@ void parse_client_hello(u8 *buffer, ssize_t buffer_len, HANDSHAKE_HELLO_MSG_CTX 
             memcpy(client_hello->extensions.key_share.key.kyber768.pkey, &buffer[idx], len);
             // print_bytes(client_hello->extensions.key_share.key.kyber768.pkey, len);
         }
-        else printf("X25519Kyber768Draft00 key not found.\n");
+        else{
+            printf("X25519Kyber768Draft00 key not found.\n");
+            return 0;
+        }
     }
-    else printf("key_share extension not found.\n");
+    else{
+        printf("key_share extension not found.\n");
+        return 0;
+    }
 
     idx = eidx;
     // Find pre_share_key extension
@@ -210,6 +216,8 @@ void parse_client_hello(u8 *buffer, ssize_t buffer_len, HANDSHAKE_HELLO_MSG_CTX 
         idx += len;
     }
     else printf("pre_share_key extension not found.\n");
+
+    return 1;
 }
 
 void update_transcript_hash_msg(TRANSCRIPT_HASH_MSG *transcript_hash_msg, u8 *msg, size_t msg_len){
@@ -348,29 +356,16 @@ void enc_server_ext(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY_EXCHANGE_CTX *
     length = server_extension_len + 1 + TAG_SIZE;
     insert_header_len(record_header, length, 3, 4);
 
-    // printf("Wrap record header (server extension):\n");
-    // print_bytes(wrap_record_header, wrap_record_header_len);
-
     pt = concat_uc_str(server_extension, server_extension_len, record_type, 1);
     pt_len = server_extension_len + 1;
-    // printf("pt:\n");
-    // print_bytes(pt, pt_len);
 
     u8 *ct = malloc(pt_len * sizeof(u8));
     iv = build_iv(key_ctx->server_handshake_iv, &(key_ctx->s_hs_seq));
-    // printf("s_hs_seq: %llu\n", key_ctx->s_hs_seq);
-    // printf("iv:\n");
-    // print_bytes(iv, GCM_IV_LENGTH);
+
     evp_enc_init(&ctx, key_ctx->server_handshake_key, iv);
     enc_update(ctx, record_header, record_header_len, NULL, &ct_len, &outlen);
     enc_update(ctx, pt, pt_len, ct, &ct_len, &outlen);
     complete_enc(&ctx, ct, &ct_len, &outlen, tag);
-    // printf("ct:\n");
-    // print_bytes(ct, ct_len);
-
-    // printf("tag:\n");
-    // print_bytes(tag, TAG_SIZE);
-    // printf("\n");
 
     if(ct_len + TAG_SIZE != length)
         printf("Wrap record encryption error.\n");
@@ -397,7 +392,12 @@ void enc_server_ext(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY_EXCHANGE_CTX *
     free(ct);
 }
 
-static void load_certificates(const char *filepath, u8 **cert, size_t *len){
+static void load_certificates(u8 **cert, size_t *len){
+    char *filepath = load_setting("cert");
+    if(!filepath){
+        fprintf(stderr, "Setting error: cert file name not found.\n");
+        return;
+    }
     FILE *file = fopen(filepath, "rb");
     if (file == NULL)
         printf("Error opening file\n");
@@ -405,8 +405,6 @@ static void load_certificates(const char *filepath, u8 **cert, size_t *len){
     fseek(file, 0, SEEK_END);
     *len = ftell(file);
     rewind(file);
-
-    // printf("%d\n", *len);
 
     u8 *temp = realloc(*cert, (*len) * sizeof(u8));
     if(temp == NULL)
@@ -416,6 +414,7 @@ static void load_certificates(const char *filepath, u8 **cert, size_t *len){
         fread(*cert, 1, *len, file);
     
     fclose(file);
+    free(filepath);
 }
 
 void enc_server_cert(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY_EXCHANGE_CTX *key_ctx, TRANSCRIPT_HASH_MSG *transcript_hash_msg){
@@ -438,7 +437,7 @@ void enc_server_cert(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY_EXCHANGE_CTX 
     size_t cert_len, server_cert_len;
     u8 cert_extensions[] = {0x00, 0x00};
 
-    load_certificates("../src/cert/www.pqc-demo.xyz.der", &cert, &cert_len);
+    load_certificates(&cert, &cert_len);
     server_cert = concat_uc_str(cert, cert_len, cert_extensions, 2);
     server_cert_len = cert_len + 2;
     insert_header_len(cert_length, cert_len, 0, 2); // only cert length
@@ -459,24 +458,14 @@ void enc_server_cert(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY_EXCHANGE_CTX 
 
     pt = concat_uc_str(server_cert, server_cert_len, record_type, 1);
     pt_len = server_cert_len + 1;
-    // printf("pt:\n");
-    // print_bytes(pt, pt_len);
 
     u8 *ct = malloc(pt_len * sizeof(u8));
     iv = build_iv(key_ctx->server_handshake_iv, &(key_ctx->s_hs_seq));
-    // printf("server_hs_seq: %llu\n", server_hs_seq);
-    // printf("iv:\n");
-    // print_bytes(iv, GCM_IV_LENGTH);
+
     evp_enc_init(&ctx, key_ctx->server_handshake_key, iv);
     enc_update(ctx, record_header, record_header_len, NULL, &ct_len, &outlen);
     enc_update(ctx, pt, pt_len, ct, &ct_len, &outlen);
     complete_enc(&ctx, ct, &ct_len, &outlen, tag);
-    // printf("ct:\n");
-    // print_bytes(ct, ct_len);
-
-    // printf("tag:\n");
-    // print_bytes(tag, TAG_SIZE);
-    // printf("\n");
 
     if(ct_len + TAG_SIZE != length)
         printf("Wrap record encryption error.\n");
@@ -559,9 +548,7 @@ void enc_server_cert_verify(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY_EXCHAN
 
     pt = concat_uc_str(server_cert_verify, server_cert_verify_len, record_type, 1);
     pt_len = server_cert_verify_len + 1;
-    // printf("pt:\n");
-    // print_bytes(pt, pt_len);
-
+    
     u8 *ct = malloc(pt_len * sizeof(u8));
     iv = build_iv(key_ctx->server_handshake_iv, &(key_ctx->s_hs_seq));
 
@@ -569,13 +556,7 @@ void enc_server_cert_verify(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY_EXCHAN
     enc_update(ctx, record_header, record_header_len, NULL, &ct_len, &outlen);
     enc_update(ctx, pt, pt_len, ct, &ct_len, &outlen);
     complete_enc(&ctx, ct, &ct_len, &outlen, tag);
-    // printf("ct:\n");
-    // print_bytes(ct, ct_len);
-
-    // printf("tag:\n");
-    // print_bytes(tag, TAG_SIZE);
-    // printf("\n");
-
+  
     if(ct_len + TAG_SIZE != length)
         printf("Wrap record encryption error.\n");
     else{
@@ -635,8 +616,6 @@ void enc_server_handshake_finished(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY
 
     pt = concat_uc_str(server_handshake_finished, server_handshake_finished_len, record_type, 1);
     pt_len = server_handshake_finished_len + 1;
-    // printf("pt:\n");
-    // print_bytes(pt, pt_len);
 
     u8 *ct = malloc(pt_len * sizeof(u8));
     iv = build_iv(key_ctx->server_handshake_iv, &(key_ctx->s_hs_seq));
@@ -645,12 +624,6 @@ void enc_server_handshake_finished(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY
     enc_update(ctx, record_header, record_header_len, NULL, &ct_len, &outlen);
     enc_update(ctx, pt, pt_len, ct, &ct_len, &outlen);
     complete_enc(&ctx, ct, &ct_len, &outlen, tag);
-    // printf("ct:\n");
-    // print_bytes(ct, ct_len);
-
-    // printf("tag:\n");
-    // print_bytes(tag, TAG_SIZE);
-    // printf("\n");
 
     if(ct_len + TAG_SIZE != length)
         printf("Wrap record encryption error.\n");
@@ -687,8 +660,6 @@ void master_key_calc(TLS13_KEY_EXCHANGE_CTX *ctx, const TRANSCRIPT_HASH_MSG tran
     hexStringToBytes(ZERO_STR, key, strlen(ZERO_STR));
 
     u8 *empty_hash = sha384(NULL, 0);
-    // printf("eh: ");
-    // print_bytes(empty_hash, SHA384_DIGEST_LENGTH);
 
     u8 *derived_secret = derive_secret(ctx->handshake_secret, SHA384_DIGEST_LENGTH, "derived", empty_hash, SHA384_DIGEST_LENGTH, SHA384_DIGEST_LENGTH);
     u8 *ms = hkdf_extract(derived_secret, SHA384_DIGEST_LENGTH, key, len);

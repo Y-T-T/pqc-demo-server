@@ -38,5 +38,6 @@ void hexStringToBytes(const char *str, u8 *bytes, size_t length);
 void get_random(u8 *random, size_t);
 void get_ct_tag(u8 *ct, int *ct_len, u8 *tag, u8 *buffer, size_t len);
 void insert_header_len(u8 *header, uint32_t len, int start, int end);
+char * load_setting(char *pattern);
 
 #endif

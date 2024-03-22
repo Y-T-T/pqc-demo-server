@@ -3,7 +3,7 @@
 
 #include <base/types.h>
 
-void parse_client_hello(u8 *, ssize_t, HANDSHAKE_HELLO_MSG_CTX *);
+size_t parse_client_hello(u8 *, ssize_t, HANDSHAKE_HELLO_MSG_CTX *);
 void update_transcript_hash_msg(TRANSCRIPT_HASH_MSG *, u8 *msg, size_t msg_len);
 int check_session_ticket(HANDSHAKE_HELLO_MSG_CTX *client_hello, const SESSION_POOL **pool, const size_t pool_len);
 void add_change_cipher_spec(SERVER_HELLO_MSG *);

@@ -17,7 +17,7 @@ int main() {
     char client_ip[INET_ADDRSTRLEN];
     ssize_t bytes, buffer_len;
     int conn_count = 0;
-    // char *testHttpResponse = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello World!";
+    char *alert_response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nThis website only supports TLS1.3 x25519kyber768draft00, you need to enable it at chrome://flags";
 
     TRANSCRIPT_HASH_MSG transcript_hash_msg = {NULL, 0, NULL, 0};
     HANDSHAKE_HELLO_MSG_CTX client_hello, server_hello;
@@ -56,178 +56,171 @@ int main() {
             memcpy(client_msg + client_msg_len, buffer, bytes);
             client_msg_len += bytes;
         }
-        parse_client_hello(client_msg, client_msg_len, &client_hello);
-
-        /* to-do: check session ticket */
-        // pool_idx = check_session_ticket(&client_hello, session_pool, session_pool_len);
-        client_hello.extensions.session_ticket.valid = 0;
-        
-        if(!client_hello.extensions.session_ticket.valid){
-            update_transcript_hash_msg(&transcript_hash_msg, client_msg + 5, client_msg_len - 5);
+        if(!parse_client_hello(client_msg, client_msg_len, &client_hello))
+            printf("The client does not enable x25519kyber768draft00 key exchange.\n");
+        else{
+            /* to-do: check session ticket */
+            // pool_idx = check_session_ticket(&client_hello, session_pool, session_pool_len);
+            client_hello.extensions.session_ticket.valid = 0;
             
-            /* Generate:
-             * 1. Server x25519 keypair
-             * 2. Kyber share secret
-             * 3. Ciphertext encapsulation using client's public key
-             */
+            if(!client_hello.extensions.session_ticket.valid){
+                update_transcript_hash_msg(&transcript_hash_msg, client_msg + 5, client_msg_len - 5);
+                
+                /* Generate:
+                * 1. Server x25519 keypair
+                * 2. Kyber share secret
+                * 3. Ciphertext encapsulation using client's public key
+                */
 
-            X25519_KYBER768_KEYGEN(client_hello, &server_hello);
+                X25519_KYBER768_KEYGEN(client_hello, &server_hello);
 
-            /* Build:
-             * server hello
-             */
+                /* Build:
+                * server hello
+                */
 
-            build_server_hello(&server_hello_response, client_hello, &server_hello);
-            update_transcript_hash_msg(&transcript_hash_msg, server_hello_response.hello_msg + 5, server_hello_response.hello_msg_len - 5);
+                build_server_hello(&server_hello_response, client_hello, &server_hello);
+                update_transcript_hash_msg(&transcript_hash_msg, server_hello_response.hello_msg + 5, server_hello_response.hello_msg_len - 5);
 
-            /* Add:
-             * change cipher spec
-             */
+                /* Add:
+                * change cipher spec
+                */
 
-            add_change_cipher_spec(&server_hello_response);
+                add_change_cipher_spec(&server_hello_response);
 
-            /* calculate all key 
-             * 1. calc share secret
-             * 2. transcript hash of hello msg
-             * 3. handshake key derived
-             */
+                /* calculate all key 
+                * 1. calc share secret
+                * 2. transcript hash of hello msg
+                * 3. handshake key derived
+                */
 
-            TLS13_KEY_EXCHANGE_CTX_INIT(&key_ctx);
-            key_ctx.shared_secret = calc_ss(client_hello, server_hello);
+                TLS13_KEY_EXCHANGE_CTX_INIT(&key_ctx);
+                key_ctx.shared_secret = calc_ss(client_hello, server_hello);
 
-            handshake_key_calc(transcript_hash_msg.hash, &key_ctx);
+                handshake_key_calc(transcript_hash_msg.hash, &key_ctx);
 
-            /* encrypted wrap record
-             * 1. server extenstions
-             * 2. server certificate
-             * 3. server certificate verify
-             * 4. server handshake finished
-             */
+                /* encrypted wrap record
+                * 1. server extenstions
+                * 2. server certificate
+                * 3. server certificate verify
+                * 4. server handshake finished
+                */
 
-            enc_server_ext(&server_hello_response, &key_ctx, &transcript_hash_msg);
-            enc_server_cert(&server_hello_response, &key_ctx, &transcript_hash_msg);
-            enc_server_cert_verify(&server_hello_response, &key_ctx, &transcript_hash_msg);
-            enc_server_handshake_finished(&server_hello_response, &key_ctx, &transcript_hash_msg);
+                enc_server_ext(&server_hello_response, &key_ctx, &transcript_hash_msg);
+                enc_server_cert(&server_hello_response, &key_ctx, &transcript_hash_msg);
+                enc_server_cert_verify(&server_hello_response, &key_ctx, &transcript_hash_msg);
+                enc_server_handshake_finished(&server_hello_response, &key_ctx, &transcript_hash_msg);
 
-            /* calc master key*/
-            master_key_calc(&key_ctx, transcript_hash_msg);
+                /* calc master key*/
+                master_key_calc(&key_ctx, transcript_hash_msg);
 
-            /* Send response */
-            if(send_response(client_sock, server_hello_response.all_msg, server_hello_response.all_msg_len) != server_hello_response.all_msg_len)
-                printf("send error.\n");
-            
-            // printf("Server send:\n");
-            // print_bytes(server_hello_response.all_msg, server_hello_response.all_msg_len);
-            // printf("\n");
-
-            /* recieve client finished */
-            buffer_len = 0, client_msg_len = 0;
-            memset(buffer, 0, BUFFER_SIZE);
-            memset(client_msg, 0, BUFFER_SIZE);
-            if((bytes = recv(client_sock, buffer, BUFFER_SIZE, 0)) > 0){
-                // printf("Client finished response (len: %zd):\n", bytes);
-                // print_bytes(buffer, bytes);
+                /* Send response */
+                if(send_response(client_sock, server_hello_response.all_msg, server_hello_response.all_msg_len) != server_hello_response.all_msg_len)
+                    printf("send error.\n");
+                
+                // printf("Server send:\n");
+                // print_bytes(server_hello_response.all_msg, server_hello_response.all_msg_len);
                 // printf("\n");
-                memcpy(client_msg + client_msg_len, buffer, bytes);
-                client_msg_len += bytes;
+
+                /* recieve client finished */
+                buffer_len = 0, client_msg_len = 0;
+                memset(buffer, 0, BUFFER_SIZE);
+                memset(client_msg, 0, BUFFER_SIZE);
+                if((bytes = recv(client_sock, buffer, BUFFER_SIZE, 0)) > 0){
+                    // printf("Client finished response (len: %zd):\n", bytes);
+                    // print_bytes(buffer, bytes);
+                    // printf("\n");
+                    memcpy(client_msg + client_msg_len, buffer, bytes);
+                    client_msg_len += bytes;
+                }
+
+                /* verify client finished */
+                if(verify_client_finished(client_msg, client_msg_len, &key_ctx, transcript_hash_msg))
+                    printf("Error: Client finished data verified failed.\n");
+                else printf("Client finished data verified success.\n");
+                
+                /* Send 2 session ticket */
+                session_ticket_msg = generate_session_ticket(&key_ctx, session_pool, &session_pool_len, &session_ticket_msg_len);
+                // printf("Session ticket 1:\n");
+                // print_bytes(session_ticket_msg, session_ticket_msg_len);
+                if(send_response(client_sock, session_ticket_msg, session_ticket_msg_len) != session_ticket_msg_len)
+                    printf("send error.\n");
+                
+                // memset(session_ticket_msg, 0, session_ticket_msg_len);
+                free(session_ticket_msg);
+                session_ticket_msg = NULL;
+                session_ticket_msg = generate_session_ticket(&key_ctx, session_pool, &session_pool_len, &session_ticket_msg_len);
+                // printf("Session ticket 2:\n");
+                // print_bytes(session_ticket_msg, session_ticket_msg_len);
+                if(send_response(client_sock, session_ticket_msg, session_ticket_msg_len) != session_ticket_msg_len)
+                    printf("send error.\n");
+            }
+            else {
+                /* to-do:
+                * Since the ticket is valid, server must response server hello with specific extension
+                * ...
+                */
+                // update_transcript_hash_msg(&transcript_hash_msg, client_hello_msg + 5, client_hello_msg_len - 5);
+
+                // TLS13_KEY_EXCHANGE_CTX_INIT(&key_ctx);
+                // key_ctx = *session_pool->key_ctx;
+                
             }
 
-            /* verify client finished */
-            if(verify_client_finished(client_msg, client_msg_len, &key_ctx, transcript_hash_msg))
-                printf("Error: Client finished data verified failed.\n");
-            else printf("Client finished data verified success.\n");
-            
-            /* Send 2 session ticket */
-            session_ticket_msg = generate_session_ticket(&key_ctx, session_pool, &session_pool_len, &session_ticket_msg_len);
-            // printf("Session ticket 1:\n");
-            // print_bytes(session_ticket_msg, session_ticket_msg_len);
-            if(send_response(client_sock, session_ticket_msg, session_ticket_msg_len) != session_ticket_msg_len)
-                printf("send error.\n");
-            
-            // memset(session_ticket_msg, 0, session_ticket_msg_len);
-            free(session_ticket_msg);
-            session_ticket_msg = NULL;
-            session_ticket_msg = generate_session_ticket(&key_ctx, session_pool, &session_pool_len, &session_ticket_msg_len);
-            // printf("Session ticket 2:\n");
-            // print_bytes(session_ticket_msg, session_ticket_msg_len);
-            if(send_response(client_sock, session_ticket_msg, session_ticket_msg_len) != session_ticket_msg_len)
-                printf("send error.\n");
-        }
-        else {
-            /* to-do:
-             * Since the ticket is valid, server must response server hello with specific extension
-             * ...
-             */
-            // update_transcript_hash_msg(&transcript_hash_msg, client_hello_msg + 5, client_hello_msg_len - 5);
+            TRANSCRIPT_HASH_MSG_FREE(&transcript_hash_msg);
+            SERVER_HELLO_MSG_FREE(&server_hello_response);
+            HANDSHAKE_HELLO_MSG_CTX_FREE(&client_hello);
+            HANDSHAKE_HELLO_MSG_CTX_FREE(&server_hello);
 
-            // TLS13_KEY_EXCHANGE_CTX_INIT(&key_ctx);
-            // key_ctx = *session_pool->key_ctx;
-            
-        }
+            printf("%s", TLS_END_START_DATA_EXCHANGE);
 
-        TRANSCRIPT_HASH_MSG_FREE(&transcript_hash_msg);
-        SERVER_HELLO_MSG_FREE(&server_hello_response);
-        HANDSHAKE_HELLO_MSG_CTX_FREE(&client_hello);
-        HANDSHAKE_HELLO_MSG_CTX_FREE(&server_hello);
+            connectToGunicornServer();
 
-        printf("%s", TLS_END_START_DATA_EXCHANGE);
+            /* recieve applicaion data */
+            timeout = 0;
+            size_t conn_times = 0;
+            signal(SIGALRM, handle_alarm);
+            alarm(KEEP_ALIVE_TIMEOUT);
 
-        connectToGunicornServer();
+            while(!timeout && conn_times < MAX_KEEP_ALIVE_CONN_TIMES){
+                recv_msg(client_sock, buffer_pool, &buffer_pool_idx);
+                conn_times++;
+                // for(int i = 0; i < buffer_pool_idx; i++){
+                //     printf("Pool[%d]: Recieved:(len: %zd):\n", i, buffer_pool[i].length);
+                //     print_bytes(buffer_pool[i].buffer, buffer_pool[i].length);
+                // }
 
-        /* recieve applicaion data */
-        timeout = 0;
-        size_t conn_times = 0;
-        signal(SIGALRM, handle_alarm);
-        alarm(KEEP_ALIVE_TIMEOUT);
+                client_msg_dec(buffer_pool, buffer_pool_idx, &key_ctx);
+                for(int i = 0; i < buffer_pool_idx; i++)
+                    printf("{Client} decrypted request (pool:%d, len:%zd):\n%s\n", i, buffer_pool[i].length, buffer_pool[i].buffer);
+                
+                if(conn_is_keep_alive(buffer_pool, buffer_pool_idx))
+                    alarm(KEEP_ALIVE_TIMEOUT);
+                update_forwarded_header(buffer_pool, buffer_pool_idx, client_ip);
+                // for(int i = 0; i < buffer_pool_idx; i++)
+                //     printf("Pool[%d]: Add X-Forwarded:(len: %zd):\n%s\n", i, buffer_pool[i].length, buffer_pool[i].buffer);
 
-        while(!timeout && conn_times < MAX_KEEP_ALIVE_CONN_TIMES){
-            recv_msg(client_sock, buffer_pool, &buffer_pool_idx);
-            conn_times++;
-            // for(int i = 0; i < buffer_pool_idx; i++){
-            //     printf("Pool[%d]: Recieved:(len: %zd):\n", i, buffer_pool[i].length);
-            //     print_bytes(buffer_pool[i].buffer, buffer_pool[i].length);
-            // }
+                send_msg(server_sock, buffer_pool, buffer_pool_idx);
 
-            client_msg_dec(buffer_pool, buffer_pool_idx, &key_ctx);
-            for(int i = 0; i < buffer_pool_idx; i++)
-                printf("{Client} decrypted request (pool:%d, len:%zd):\n%s\n", i, buffer_pool[i].length, buffer_pool[i].buffer);
-            
-            if(conn_is_keep_alive(buffer_pool, buffer_pool_idx))
-                alarm(KEEP_ALIVE_TIMEOUT);
-            update_forwarded_header(buffer_pool, buffer_pool_idx, client_ip);
-            // for(int i = 0; i < buffer_pool_idx; i++)
-            //     printf("Pool[%d]: Add X-Forwarded:(len: %zd):\n%s\n", i, buffer_pool[i].length, buffer_pool[i].buffer);
+                recv_msg(server_sock, buffer_pool, &buffer_pool_idx);
+                for(int i = 0; i < buffer_pool_idx; i++){
+                    printf("{Server} response (pool:%d, len:%zd):\n", i, buffer_pool[i].length);
+                    if(buffer_pool[i].length < MAX_PRINT_BYTES)
+                        printf("%s\n", buffer_pool[i].buffer);
+                    else printf("Omitted... (too long to print)\n");
+                }
+                // update_keep_alive_header(buffer_pool, buffer_pool_idx);
+                // for(int i = 0; i < buffer_pool_idx; i++)
+                //     printf("Pool[%d]: Add Keep-Alive:(len: %zd):\n%s\n", i, buffer_pool[i].length, buffer_pool[i].buffer);
 
-            send_msg(server_sock, buffer_pool, buffer_pool_idx);
-
-            recv_msg(server_sock, buffer_pool, &buffer_pool_idx);
-            for(int i = 0; i < buffer_pool_idx; i++){
-                printf("{Server} response (pool:%d, len:%zd):\n", i, buffer_pool[i].length);
-                if(buffer_pool[i].length < MAX_PRINT_BYTES)
-                    printf("%s\n", buffer_pool[i].buffer);
-                else printf("Omitted... (too long to print)\n");
+                if(server_msg_enc(buffer_pool, buffer_pool_idx, &key_ctx))
+                    send_msg(client_sock, buffer_pool, buffer_pool_idx);
+                
+                // printf("Connection times: %zd\n", conn_times);
             }
-            // update_keep_alive_header(buffer_pool, buffer_pool_idx);
-            // for(int i = 0; i < buffer_pool_idx; i++)
-            //     printf("Pool[%d]: Add Keep-Alive:(len: %zd):\n%s\n", i, buffer_pool[i].length, buffer_pool[i].buffer);
 
-            if(server_msg_enc(buffer_pool, buffer_pool_idx, &key_ctx))
-                send_msg(client_sock, buffer_pool, buffer_pool_idx);
-            
-            // printf("Connection times: %zd\n", conn_times);
+            if(timeout) printf("Time out. Closing connection...\n");
         }
-
-        if(timeout) printf("Time out. Closing connection...\n");
-
-        // printf("Server response(length:%lu):\n", strlen(testHttpResponse));
-        // printf("%s\n", testHttpResponse);
-        // enc_data_len = server_msg_enc((u8 *)testHttpResponse, strlen(testHttpResponse), &key_ctx, enc_data);
-        // printf("Server encrypted response(len: %zu):\n", enc_data_len);
-        // print_bytes(enc_data, enc_data_len);
-        // printf("\n");
-       
-        // send(client_sock, testHttpResponse, strlen(testHttpResponse), 0);
-
+        
         printf("Closing client(IP:%s) socket...", client_ip);
         close(client_sock);
         printf("Done.\nClosing server socket...");

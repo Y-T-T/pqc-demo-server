@@ -81,3 +81,34 @@ void insert_header_len(u8 *header, uint32_t len, int start, int end){
         len >>= 8;
     }
 }
+
+char * load_setting(char *pattern){
+    char line[255];
+    char key[255], value[255];
+    char *res = malloc(255 * sizeof(char));
+    char *prefix = "../src/cert/";
+    memset(res, 0, 255);
+    FILE *file = fopen("../setting.conf", "r");
+    if (file == NULL)
+        printf("Error opening file\n");
+
+    while (fgets(line, sizeof(line), file) != NULL) {
+        if (line[0] == '#' || strlen(line) <= 1) continue;
+
+        if (sscanf(line, "%[^=]=%s", key, value) == 2) {
+            if(strcmp(key, pattern) == 0){
+                // printf("Key: %s, Value: %s\n", key, value);
+                strncat(res, prefix, strlen(prefix));
+                strncat(res, value, strlen(value));
+                break;
+            }
+        }
+    }
+
+    fclose(file);
+    if(strlen(res) == 0){
+        fprintf(stderr, "setting.conf error: pattern [%s] not found or value is empty.\n", pattern);
+        return NULL;
+    }
+    return res;
+}
