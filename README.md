@@ -16,7 +16,7 @@ This is a [proxy server](https://www.pqc-demo.xyz) demonstration based on TLS 1.
 * ![gunicorn](https://img.shields.io/badge/gunicorn-21.2.0-blue)
 * ![cmake](https://img.shields.io/badge/cmake-3.12-blue)
 * ![openssl](https://img.shields.io/badge/openssl-3.0.2-blue)
-* ![npm](https://img.shields.io/badge/npm-v10.2.4-blue)
+* ![npm](https://img.shields.io/badge/npm-10.2.4-blue)
 * ![chrome](https://img.shields.io/badge/chrome-116-blue)
 
 ### Framework

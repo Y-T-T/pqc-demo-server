@@ -4,10 +4,10 @@ pip install -r requirements.txt
 
 op=$1
 if [[ "$op" = "-t" ]]; then
-    # build to stable
+    # build to test
     dst=src/proxy_server_test.c
 else
-    # build to test
+    # build to stable
     dst=src/proxy_server_stable.c
 fi
 
