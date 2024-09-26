@@ -35,8 +35,7 @@ This is a [proxy server](https://www.pqc-demo.xyz) demonstration based on TLS 1.
 
 #### Client
 1. Open the chrome and goto `chrome://flags`
-2. Enable `TLS 1.3 hybridized Kyber support`<br>
-P.S. Chrome is now turned on by default
+2. Enable `TLS 1.3 hybridized Kyber support` (Chrome is now turned on by default)
 
 #### Notice
 * The cert folder must contain the X.509 certificate in `DER` format and the key in `PEM` format.
