@@ -96,10 +96,6 @@ int main() {
 
                 TLS13_KEY_EXCHANGE_CTX_INIT(&key_ctx);
                 key_ctx.shared_secret = calc_ss(client_hello, server_hello);
-
-                printf("ss:\n");
-                print_bytes(key_ctx.shared_secret, SS_LEN);
-
                 handshake_key_calc(transcript_hash_msg.hash, &key_ctx);
 
                 /* encrypted wrap record
@@ -132,9 +128,9 @@ int main() {
                 memset(buffer, 0, BUFFER_SIZE);
                 memset(client_msg, 0, BUFFER_SIZE);
                 if((bytes = recv(client_sock, buffer, BUFFER_SIZE, 0)) > 0){
-                    printf("Client finished response (len: %zd):\n", bytes);
-                    print_bytes(buffer, bytes);
-                    printf("\n");
+                    // printf("Client finished response (len: %zd):\n", bytes);
+                    // print_bytes(buffer, bytes);
+                    // printf("\n");
                     memcpy(client_msg + client_msg_len, buffer, bytes);
                     client_msg_len += bytes;
                 }
@@ -200,10 +196,10 @@ int main() {
             while(!timeout && conn_times < MAX_KEEP_ALIVE_CONN_TIMES){
                 recv_msg(client_sock, buffer_pool, &buffer_pool_idx);
                 conn_times++;
-                for(int i = 0; i < buffer_pool_idx; i++){
-                    printf("Pool[%d]: Recieved:(len: %zd):\n", i, buffer_pool[i].length);
-                    print_bytes(buffer_pool[i].buffer, buffer_pool[i].length);
-                }
+                // for(int i = 0; i < buffer_pool_idx; i++){
+                //     printf("Pool[%d]: Recieved:(len: %zd):\n", i, buffer_pool[i].length);
+                //     print_bytes(buffer_pool[i].buffer, buffer_pool[i].length);
+                // }
 
                 client_msg_dec(buffer_pool, buffer_pool_idx, &key_ctx);
                 for(int i = 0; i < buffer_pool_idx; i++)

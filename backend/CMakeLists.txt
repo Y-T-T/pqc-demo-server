@@ -17,7 +17,7 @@ add_subdirectory(server)
 add_subdirectory(tls)
 
 
-set(SOURCE_FILES src/proxy_server_test.c)
+set(SOURCE_FILES src/proxy_server_stable.c)
 
 add_executable(
     test_server

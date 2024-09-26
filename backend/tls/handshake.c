@@ -296,19 +296,8 @@ u8 * calc_ss(const HANDSHAKE_HELLO_MSG_CTX client, const HANDSHAKE_HELLO_MSG_CTX
 }
 
 void handshake_key_calc(const u8 *hello_hash, TLS13_KEY_EXCHANGE_CTX *ctx){
-    // size_t len = strlen(ZERO_STR) / 2;
-    // u8 *key = malloc(len * sizeof(u8));
-    // u8 *salt = malloc(len * sizeof(u8));;
-    // hexStringToBytes(ZERO_STR, key, strlen(ZERO_STR));
-    // hexStringToBytes(ZERO_STR, salt, strlen(ZERO_STR));
-
-    // u8 *early_secret = hkdf_extract(salt, len, key, len);
     u8 *early_secret = hkdf_extract(kZeros, _SHA_DIGEST_LENGTH, kZeros, _SHA_DIGEST_LENGTH);
-    // printf("es: ");
-    // print_bytes(early_secret, _SHA_DIGEST_LENGTH);
     u8 *empty_hash = sha_t(NULL, 0);
-    // printf("eh: ");
-    // print_bytes(empty_hash, _SHA_DIGEST_LENGTH);
 
     u8 *derived_secret = derive_secret(early_secret, _SHA_DIGEST_LENGTH, "derived", empty_hash, _SHA_DIGEST_LENGTH, _SHA_DIGEST_LENGTH);
     ctx->handshake_secret = hkdf_extract(derived_secret, _SHA_DIGEST_LENGTH, ctx->shared_secret, SS_LEN);
@@ -319,24 +308,6 @@ void handshake_key_calc(const u8 *hello_hash, TLS13_KEY_EXCHANGE_CTX *ctx){
     ctx->server_handshake_iv = derive_secret(ctx->server_handshake_traffic_secret, _SHA_DIGEST_LENGTH, "iv", (u8 *)"", 0, _NONCE_LENGTH);
     ctx->client_handshake_iv = derive_secret(ctx->client_handshake_traffic_secret, _SHA_DIGEST_LENGTH, "iv", (u8 *)"", 0, _NONCE_LENGTH);
 
-    // printf("hs: ");
-    // print_bytes(ctx->handshake_secret, _SHA_DIGEST_LENGTH);
-    printf("ssec: \n");
-    print_bytes(ctx->server_handshake_traffic_secret, _SHA_DIGEST_LENGTH);
-    printf("csec: \n");
-    print_bytes(ctx->client_handshake_traffic_secret, _SHA_DIGEST_LENGTH);
-    // printf("skey: ");
-    // print_bytes(ctx->server_handshake_key, 32);
-    // printf("ckey: ");
-    // print_bytes(ctx->client_handshake_key, 32);
-    printf("siv: ");
-    print_bytes(ctx->server_handshake_iv, _NONCE_LENGTH);
-    printf("civ: ");
-    print_bytes(ctx->client_handshake_iv, _NONCE_LENGTH);
-    printf("\n");
-
-    // free(key);
-    // free(salt);
     free(early_secret);
     free(empty_hash);
     free(derived_secret);
@@ -386,9 +357,9 @@ void enc_server_ext(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY_EXCHANGE_CTX *
 
     update_transcript_hash_msg(transcript_hash_msg, server_extension, server_extension_len);
 
-    printf("Wrap record 1 (len: %zu):\n", length);
-    print_bytes(server_hello_msg->extensions, server_hello_msg->extensions_len);
-    printf("\n");
+    // printf("Wrap record 1 (len: %zu):\n", length);
+    // print_bytes(server_hello_msg->extensions, server_hello_msg->extensions_len);
+    // printf("\n");
 
     free(iv);
     free(pt);
@@ -658,14 +629,9 @@ void enc_server_handshake_finished(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY
 }
 
 void master_key_calc(TLS13_KEY_EXCHANGE_CTX *ctx, const TRANSCRIPT_HASH_MSG transcript_hash_msg){
-    // size_t len = strlen(ZERO_STR) / 2;
-    // u8 *key = malloc(len * sizeof(u8));
-    // hexStringToBytes(ZERO_STR, key, strlen(ZERO_STR));
-
     u8 *empty_hash = sha_t(NULL, 0);
 
     u8 *derived_secret = derive_secret(ctx->handshake_secret, _SHA_DIGEST_LENGTH, "derived", empty_hash, _SHA_DIGEST_LENGTH, _SHA_DIGEST_LENGTH);
-    // u8 *ms = hkdf_extract(derived_secret, _SHA_DIGEST_LENGTH, key, len);
     u8 *ms = hkdf_extract(derived_secret, _SHA_DIGEST_LENGTH, kZeros, _SHA_DIGEST_LENGTH);
     u8 *ssec = derive_secret(ms, _SHA_DIGEST_LENGTH, "s ap traffic", transcript_hash_msg.hash, _SHA_DIGEST_LENGTH, _SHA_DIGEST_LENGTH);
     u8 *csec = derive_secret(ms, _SHA_DIGEST_LENGTH, "c ap traffic", transcript_hash_msg.hash, _SHA_DIGEST_LENGTH, _SHA_DIGEST_LENGTH);
@@ -674,7 +640,6 @@ void master_key_calc(TLS13_KEY_EXCHANGE_CTX *ctx, const TRANSCRIPT_HASH_MSG tran
     ctx->server_master_iv = derive_secret(ssec, _SHA_DIGEST_LENGTH, "iv", (u8 *)"", 0, _NONCE_LENGTH);
     ctx->client_master_iv = derive_secret(csec, _SHA_DIGEST_LENGTH, "iv", (u8 *)"", 0, _NONCE_LENGTH);
 
-    // free(key);
     free(empty_hash);
     free(derived_secret);
     free(ms);
