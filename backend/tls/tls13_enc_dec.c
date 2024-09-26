@@ -1,6 +1,6 @@
 #include <tls/tls13_enc_dec.h>
 #include <base/base.h>
-#include <crypto/aes_256_gcm.h>
+#include <crypto/crypto_meth.h>
 #include <crypto/openssl_base.h>
 
 size_t server_msg_enc(BUFFER_POOL *pool, const size_t pool_idx, TLS13_KEY_EXCHANGE_CTX *key_ctx){
@@ -29,7 +29,7 @@ size_t server_msg_enc(BUFFER_POOL *pool, const size_t pool_idx, TLS13_KEY_EXCHAN
         pt_len = pool[i].length + 1;
         ct = malloc(pt_len * sizeof(u8));
 
-        iv = build_iv(key_ctx->server_master_iv, &key_ctx->s_ap_seq);
+        iv = GEN_IV(key_ctx->server_master_iv, &key_ctx->s_ap_seq);
 
         evp_enc_init(&ctx, key_ctx->server_master_key, iv);
         enc_update(ctx, record_header, TLS_RECORDER_HEADER_LENGTH, NULL, &ct_len, &outlen);
@@ -88,7 +88,7 @@ size_t client_msg_dec(BUFFER_POOL *pool, const size_t pool_idx, TLS13_KEY_EXCHAN
             // print_bytes(tag, TAG_SIZE);
 
             pt = malloc(ct_len * sizeof(u8));
-            iv = build_iv(key_ctx->client_master_iv, &key_ctx->c_ap_seq);
+            iv = GEN_IV(key_ctx->client_master_iv, &key_ctx->c_ap_seq);
             evp_dec_init(&ctx, key_ctx->client_master_key, iv);
             dec_update(ctx, aad, 5, NULL, &pt_len, &outlen);
             dec_update(ctx, ct, ct_len, pt, &pt_len, &outlen);

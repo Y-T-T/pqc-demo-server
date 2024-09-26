@@ -1,29 +1,40 @@
-#include <crypto/aes_256_gcm.h>
+#include <crypto/crypto_meth.h>
 
-u8 * build_iv(u8 *iv, uint64_t *seq){
+#include <base/base.h>
 
-    u8 *res = malloc(GCM_IV_LENGTH * sizeof(u8));
-    memcpy(res, iv, GCM_IV_LENGTH);
-	size_t i;
-	for (i = 0; i < 8; i++)
-		res[GCM_IV_LENGTH - 1 - i] ^= (((*seq) >> (i*8))&0xFF);
+static const EVP_CIPHER * get_cipher_suite_alg() {
+    return TLS_CIPHER_SUITE();
+}
+
+u8 * build_nonce(u8 *iv, uint64_t *seq){
+
+    u8 *nonce = malloc(_NONCE_LENGTH * sizeof(u8));
+    // print_bytes(iv, _NONCE_LENGTH);
+    memcpy(nonce, iv, 4);
+	for (int i = 0; i < 8; i++){
+        nonce[4 + i] = iv[4 + i] ^ (((*seq) >> ((7-i) * 8))&0xFF);
+    }
     
+    // printf("nonce:");
+    // for(int i = 0; i < _NONCE_LENGTH; i++)
+    //     printf("%02x", nonce[i]);
+    // printf("\n");
     (*seq)++;
 
-    return res;
+    return nonce;
 }
 
 int evp_enc_init(EVP_CIPHER_CTX **ctx, u8 key[EVP_MAX_KEY_LENGTH], u8 iv[EVP_MAX_IV_LENGTH]){
     if(!(*ctx = EVP_CIPHER_CTX_new())) return 0;
-    if(!EVP_EncryptInit_ex(*ctx, EVP_aes_256_gcm(), NULL, NULL, NULL)) return 0;
+    if(!EVP_EncryptInit_ex(*ctx, get_cipher_suite_alg(), NULL, NULL, NULL)) return 0;
     if(!EVP_EncryptInit_ex(*ctx, NULL, NULL, key, iv)) return 0;
     return 1;
 }
 
 int evp_dec_init(EVP_CIPHER_CTX **ctx, u8 key[EVP_MAX_KEY_LENGTH], u8 iv[EVP_MAX_IV_LENGTH]){
     if(!(*ctx = EVP_CIPHER_CTX_new())) return 0;
-    if(!EVP_DecryptInit_ex(*ctx, EVP_aes_256_gcm(), NULL, NULL, NULL)) return 0;
-    if(!EVP_CIPHER_CTX_ctrl(*ctx, EVP_CTRL_GCM_SET_IVLEN, 12, NULL)) return 0;
+    if(!EVP_DecryptInit_ex(*ctx, get_cipher_suite_alg(), NULL, NULL, NULL)) return 0;
+    if(!EVP_CIPHER_CTX_ctrl(*ctx, EVP_CTRL_GCM_SET_IVLEN, _NONCE_LENGTH, NULL)) return 0;
     if(!EVP_DecryptInit_ex(*ctx, NULL, NULL, key, iv)) return 0;
     return 1;
 }
@@ -44,7 +55,7 @@ int complete_enc(EVP_CIPHER_CTX **ctx, u8 *ciphertext, int *ciphertext_len, int 
     if(!EVP_EncryptFinal_ex(*ctx, ciphertext + *ciphertext_len, &(*outlen))) return 0;
     *ciphertext_len += *outlen;
 
-    if(!EVP_CIPHER_CTX_ctrl(*ctx, EVP_CTRL_GCM_GET_TAG, 16, tag)) return 0;
+    if(!EVP_CIPHER_CTX_ctrl(*ctx, EVP_CTRL_GCM_GET_TAG, TAG_SIZE, tag)) return 0;
 
     EVP_CIPHER_CTX_free(*ctx);
     *ctx = NULL;
@@ -52,7 +63,7 @@ int complete_enc(EVP_CIPHER_CTX **ctx, u8 *ciphertext, int *ciphertext_len, int 
 }
 
 int complete_dec(EVP_CIPHER_CTX **ctx, u8 *plaintext, int *plaintext_len, int *outlen, u8 *tag){
-    if(!EVP_CIPHER_CTX_ctrl(*ctx, EVP_CTRL_GCM_SET_TAG, 16, tag)){
+    if(!EVP_CIPHER_CTX_ctrl(*ctx, EVP_CTRL_GCM_SET_TAG, TAG_SIZE, tag)){
         printf("Set tag error.\n");
         return 0;
     }
@@ -114,16 +125,16 @@ int complete_dec(EVP_CIPHER_CTX **ctx, u8 *plaintext, int *plaintext_len, int *o
 
 //     // print_bytes(decrypted_pt, pt_len);
     
-//     // u8 *res = malloc(GCM_IV_LENGTH * sizeof(u8));
+//     // u8 *res = malloc(_NONCE_LENGTH * sizeof(u8));
 //     // uint64_t seq = 0;
 //     // for(;seq < 10; seq++){
 //     //     // build_iv_o(iv, seq);
         
 //     //     res = build_iv(iv, seq);
 //     //     printf("%llu: ", seq);
-//     //     print_bytes(res, GCM_IV_LENGTH);
+//     //     print_bytes(res, _NONCE_LENGTH);
 
-//     //     // print_bytes(iv, GCM_IV_LENGTH);
+//     //     // print_bytes(iv, _NONCE_LENGTH);
 //     // }
 
 //     // free(res);

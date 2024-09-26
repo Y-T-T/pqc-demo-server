@@ -5,6 +5,7 @@
 #include <tls/handshake.h>
 #include <tls/tls13_enc_dec.h>
 #include <tls/tls13_hkdf_expand.h>
+#include <crypto/crypto_meth.h>
 
 int main() {
     extern int proxy_sock, client_sock, server_sock;
@@ -96,6 +97,9 @@ int main() {
                 TLS13_KEY_EXCHANGE_CTX_INIT(&key_ctx);
                 key_ctx.shared_secret = calc_ss(client_hello, server_hello);
 
+                printf("ss:\n");
+                print_bytes(key_ctx.shared_secret, SS_LEN);
+
                 handshake_key_calc(transcript_hash_msg.hash, &key_ctx);
 
                 /* encrypted wrap record
@@ -104,6 +108,8 @@ int main() {
                 * 3. server certificate verify
                 * 4. server handshake finished
                 */
+               
+                // test_chacha();
 
                 enc_server_ext(&server_hello_response, &key_ctx, &transcript_hash_msg);
                 enc_server_cert(&server_hello_response, &key_ctx, &transcript_hash_msg);
@@ -126,16 +132,26 @@ int main() {
                 memset(buffer, 0, BUFFER_SIZE);
                 memset(client_msg, 0, BUFFER_SIZE);
                 if((bytes = recv(client_sock, buffer, BUFFER_SIZE, 0)) > 0){
-                    // printf("Client finished response (len: %zd):\n", bytes);
-                    // print_bytes(buffer, bytes);
-                    // printf("\n");
+                    printf("Client finished response (len: %zd):\n", bytes);
+                    print_bytes(buffer, bytes);
+                    printf("\n");
                     memcpy(client_msg + client_msg_len, buffer, bytes);
                     client_msg_len += bytes;
                 }
 
                 /* verify client finished */
-                if(verify_client_finished(client_msg, client_msg_len, &key_ctx, transcript_hash_msg))
+                if(!verify_client_finished(client_msg, client_msg_len, &key_ctx, transcript_hash_msg)){
                     printf("Error: Client finished data verified failed.\n");
+                    TRANSCRIPT_HASH_MSG_FREE(&transcript_hash_msg);
+                    SERVER_HELLO_MSG_FREE(&server_hello_response);
+                    HANDSHAKE_HELLO_MSG_CTX_FREE(&client_hello);
+                    HANDSHAKE_HELLO_MSG_CTX_FREE(&server_hello);
+                    TLS13_KEY_EXCHANGE_CTX_FREE(&key_ctx);
+                    printf("Closing client(IP:%s) socket...", client_ip);
+                    close(client_sock);
+                    printf("Done.\n==============================\n");
+                    continue;
+                }
                 else printf("Client finished data verified success.\n");
                 
                 /* Send 2 session ticket */
@@ -184,10 +200,10 @@ int main() {
             while(!timeout && conn_times < MAX_KEEP_ALIVE_CONN_TIMES){
                 recv_msg(client_sock, buffer_pool, &buffer_pool_idx);
                 conn_times++;
-                // for(int i = 0; i < buffer_pool_idx; i++){
-                //     printf("Pool[%d]: Recieved:(len: %zd):\n", i, buffer_pool[i].length);
-                //     print_bytes(buffer_pool[i].buffer, buffer_pool[i].length);
-                // }
+                for(int i = 0; i < buffer_pool_idx; i++){
+                    printf("Pool[%d]: Recieved:(len: %zd):\n", i, buffer_pool[i].length);
+                    print_bytes(buffer_pool[i].buffer, buffer_pool[i].length);
+                }
 
                 client_msg_dec(buffer_pool, buffer_pool_idx, &key_ctx);
                 for(int i = 0; i < buffer_pool_idx; i++)

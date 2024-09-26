@@ -128,7 +128,7 @@ void build_server_hello(SERVER_HELLO_MSG *server_hello_msg, const HANDSHAKE_HELL
     );
     server_hello_msg->hello_msg_len += 1;
 
-    u8 cipher_suite[] = {0x13, 0x02};
+    u8 cipher_suite[] = TLS_CIPHER_SUITE_ID;
     memcpy(server->cipher_suites, cipher_suite, 2);
     server_hello_msg->hello_msg = concat_uc_str(
         server->cipher_suites, 2,

@@ -6,12 +6,16 @@
 #include <crypto/openssl_base.h>
 #include <base/serving.h>
 
-u8 * sha256(const u8 *message, const size_t message_len) {
-    u8 *md = malloc(SHA256_DIGEST_LENGTH * sizeof(u8));
+static const EVP_MD * get_sha_alg() {
+    return _SHA_FUNCTION();
+}
+
+u8 * sha_t(const u8 *message, const size_t message_len) {
+    u8 *md = malloc(_SHA_DIGEST_LENGTH * sizeof(u8));
     unsigned int md_len;
 
     EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
-    EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL);
+    EVP_DigestInit_ex(mdctx, get_sha_alg(), NULL);
     EVP_DigestUpdate(mdctx, message, message_len);
     EVP_DigestFinal_ex(mdctx, md, &md_len);
     EVP_MD_CTX_free(mdctx);
@@ -19,27 +23,14 @@ u8 * sha256(const u8 *message, const size_t message_len) {
     return md;
 }
 
-u8 * sha384(const u8 *message, const size_t message_len) {
-    u8 *md = malloc(SHA384_DIGEST_LENGTH * sizeof(u8));
-    unsigned int md_len;
-
-    EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
-    EVP_DigestInit_ex(mdctx, EVP_sha384(), NULL);
-    EVP_DigestUpdate(mdctx, message, message_len);
-    EVP_DigestFinal_ex(mdctx, md, &md_len);
-    EVP_MD_CTX_free(mdctx);
-
-    return md;
-}
-
-u8 * hmac_sha384(const u8 *key, const size_t key_len, const u8 *data, const size_t data_len) {    
+u8 * hmac_sha_t(const u8 *key, const size_t key_len, const u8 *data, const size_t data_len) {    
     unsigned int len = EVP_MAX_MD_SIZE;
     u8 *md = malloc(len * sizeof(u8));
     
     HMAC_CTX *ctx = HMAC_CTX_new();
     
     HMAC_CTX_reset(ctx);
-    HMAC_Init_ex(ctx, key, key_len, EVP_sha384(), NULL);
+    HMAC_Init_ex(ctx, key, key_len, get_sha_alg(), NULL);
     HMAC_Update(ctx, data, data_len);
     HMAC_Final(ctx, md, &len);
     
@@ -50,9 +41,9 @@ u8 * hmac_sha384(const u8 *key, const size_t key_len, const u8 *data, const size
 
 u8 * hkdf_extract(const u8 *salt, const size_t salt_len, const u8 *ikm,const size_t key_len){
 
-    size_t prk_len = EVP_MD_size(EVP_sha384());
+    size_t prk_len = EVP_MD_size(get_sha_alg());
     u8 *prk = malloc(EVP_MAX_MD_SIZE);
-    prk = hmac_sha384(salt, salt_len, ikm, key_len);
+    prk = hmac_sha_t(salt, salt_len, ikm, key_len);
 
     return prk;
 }
@@ -106,7 +97,7 @@ static u8 * hkdf_expand(const u8 *ss, const size_t ss_len, struct HkdfLabel hkdf
         // printf("hexin: ");
         // print_bytes(hexin, res_len + info_len + 1);
 
-        md = hmac_sha384(ss, ss_len, hexin, res_len + info_len + 1);
+        md = hmac_sha_t(ss, ss_len, hexin, res_len + info_len + 1);
         // printf("md: ");
         // print_bytes(md, SHA384_DIGEST_LENGTH);
 

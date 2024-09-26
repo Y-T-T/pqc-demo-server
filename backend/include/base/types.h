@@ -128,9 +128,9 @@ typedef struct HANDSHAKE_HELLO_MSG_CTX
 typedef struct TLS13_KEY_EXCHANGE_CTX
 {
     u8 *shared_secret;
-    u8 *handshake_secret; // SHA384_DIGEST_LENGTH
-    u8 *server_handshake_traffic_secret; // SHA384_DIGEST_LENGTH
-    u8 *client_handshake_traffic_secret; // SHA384_DIGEST_LENGTH
+    u8 *handshake_secret; // _SHA_DIGEST_LENGTH
+    u8 *server_handshake_traffic_secret; // _SHA_DIGEST_LENGTH
+    u8 *client_handshake_traffic_secret; // _SHA_DIGEST_LENGTH
     u8 *server_handshake_key; // AES_KEY_LENGTH_256
     u8 *client_handshake_key; // AES_KEY_LENGTH_256
     u8 *server_handshake_iv; // GCM_IV_LENGTH

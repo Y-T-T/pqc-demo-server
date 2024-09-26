@@ -1,10 +1,12 @@
 #include <tls/handshake.h>
 #include <base/base.h>
-#include <crypto/aes_256_gcm.h>
+#include <crypto/crypto_meth.h>
 #include <crypto/x25519.h>
 #include <tls/tls13_enc_dec.h>
 #include <tls/tls13_hkdf_expand.h>
 #include <tls/rsa_pss_rsae_sha_t.h>
+
+static const u8 kZeros[_SHA_DIGEST_LENGTH] = {0};
 
 size_t parse_client_hello(u8 *buffer, ssize_t buffer_len, HANDSHAKE_HELLO_MSG_CTX *client_hello){
 
@@ -228,8 +230,8 @@ void update_transcript_hash_msg(TRANSCRIPT_HASH_MSG *transcript_hash_msg, u8 *ms
 
     transcript_hash_msg->msg_len += msg_len;
 
-    transcript_hash_msg->hash = sha384(transcript_hash_msg->msg, transcript_hash_msg->msg_len);
-    transcript_hash_msg->hash_len = SHA384_DIGEST_LENGTH;
+    transcript_hash_msg->hash = sha_t(transcript_hash_msg->msg, transcript_hash_msg->msg_len);
+    transcript_hash_msg->hash_len = _SHA_DIGEST_LENGTH;
 }
 
 int check_session_ticket(HANDSHAKE_HELLO_MSG_CTX *client_hello, const SESSION_POOL **pool, const size_t pool_len){
@@ -266,15 +268,15 @@ void TLS13_KEY_EXCHANGE_CTX_INIT(TLS13_KEY_EXCHANGE_CTX *ctx){
     ctx->server_handshake_key = NULL;
     ctx->client_handshake_key = NULL;
     ctx->server_handshake_iv = NULL;
-    ctx->s_hs_seq = 0;
+    ctx->s_hs_seq = COUNTER_INIT;
     ctx->client_handshake_iv = NULL;
-    ctx->c_hs_seq = 0;
+    ctx->c_hs_seq = COUNTER_INIT;
     ctx->server_master_key = NULL;
     ctx->client_master_key = NULL;
     ctx->server_master_iv = NULL;
-    ctx->s_ap_seq = 0;
+    ctx->s_ap_seq = COUNTER_INIT;
     ctx->client_master_iv = NULL;
-    ctx->c_ap_seq = 0;
+    ctx->c_ap_seq = COUNTER_INIT;
 }
 
 u8 * calc_ss(const HANDSHAKE_HELLO_MSG_CTX client, const HANDSHAKE_HELLO_MSG_CTX server){
@@ -294,46 +296,47 @@ u8 * calc_ss(const HANDSHAKE_HELLO_MSG_CTX client, const HANDSHAKE_HELLO_MSG_CTX
 }
 
 void handshake_key_calc(const u8 *hello_hash, TLS13_KEY_EXCHANGE_CTX *ctx){
-    size_t len = strlen(ZERO_STR) / 2;
-    u8 *key = malloc(len * sizeof(u8));
-    u8 *salt = malloc(len * sizeof(u8));;
-    hexStringToBytes(ZERO_STR, key, strlen(ZERO_STR));
-    hexStringToBytes(ZERO_STR, salt, strlen(ZERO_STR));
+    // size_t len = strlen(ZERO_STR) / 2;
+    // u8 *key = malloc(len * sizeof(u8));
+    // u8 *salt = malloc(len * sizeof(u8));;
+    // hexStringToBytes(ZERO_STR, key, strlen(ZERO_STR));
+    // hexStringToBytes(ZERO_STR, salt, strlen(ZERO_STR));
 
-    u8 *early_secret = hkdf_extract(salt, len, key, len);
+    // u8 *early_secret = hkdf_extract(salt, len, key, len);
+    u8 *early_secret = hkdf_extract(kZeros, _SHA_DIGEST_LENGTH, kZeros, _SHA_DIGEST_LENGTH);
     // printf("es: ");
-    // print_bytes(early_secret, SHA384_DIGEST_LENGTH);
-    u8 *empty_hash = sha384(NULL, 0);
+    // print_bytes(early_secret, _SHA_DIGEST_LENGTH);
+    u8 *empty_hash = sha_t(NULL, 0);
     // printf("eh: ");
-    // print_bytes(empty_hash, SHA384_DIGEST_LENGTH);
+    // print_bytes(empty_hash, _SHA_DIGEST_LENGTH);
 
-    u8 *derived_secret = derive_secret(early_secret, SHA384_DIGEST_LENGTH, "derived", empty_hash, SHA384_DIGEST_LENGTH, SHA384_DIGEST_LENGTH);
-    ctx->handshake_secret = hkdf_extract(derived_secret, SHA384_DIGEST_LENGTH, ctx->shared_secret, SS_LEN);
-    ctx->server_handshake_traffic_secret = derive_secret(ctx->handshake_secret, SHA384_DIGEST_LENGTH, "s hs traffic", hello_hash, SHA384_DIGEST_LENGTH, SHA384_DIGEST_LENGTH);
-    ctx->client_handshake_traffic_secret = derive_secret(ctx->handshake_secret, SHA384_DIGEST_LENGTH, "c hs traffic", hello_hash, SHA384_DIGEST_LENGTH, SHA384_DIGEST_LENGTH);
-    ctx->server_handshake_key = derive_secret(ctx->server_handshake_traffic_secret, SHA384_DIGEST_LENGTH, "key", (u8 *)"", 0, AES_KEY_LENGTH_256);
-    ctx->client_handshake_key = derive_secret(ctx->client_handshake_traffic_secret, SHA384_DIGEST_LENGTH, "key", (u8 *)"", 0, AES_KEY_LENGTH_256);
-    ctx->server_handshake_iv = derive_secret(ctx->server_handshake_traffic_secret, SHA384_DIGEST_LENGTH, "iv", (u8 *)"", 0, GCM_IV_LENGTH);
-    ctx->client_handshake_iv = derive_secret(ctx->client_handshake_traffic_secret, SHA384_DIGEST_LENGTH, "iv", (u8 *)"", 0, GCM_IV_LENGTH);
+    u8 *derived_secret = derive_secret(early_secret, _SHA_DIGEST_LENGTH, "derived", empty_hash, _SHA_DIGEST_LENGTH, _SHA_DIGEST_LENGTH);
+    ctx->handshake_secret = hkdf_extract(derived_secret, _SHA_DIGEST_LENGTH, ctx->shared_secret, SS_LEN);
+    ctx->server_handshake_traffic_secret = derive_secret(ctx->handshake_secret, _SHA_DIGEST_LENGTH, "s hs traffic", hello_hash, _SHA_DIGEST_LENGTH, _SHA_DIGEST_LENGTH);
+    ctx->client_handshake_traffic_secret = derive_secret(ctx->handshake_secret, _SHA_DIGEST_LENGTH, "c hs traffic", hello_hash, _SHA_DIGEST_LENGTH, _SHA_DIGEST_LENGTH);
+    ctx->server_handshake_key = derive_secret(ctx->server_handshake_traffic_secret, _SHA_DIGEST_LENGTH, "key", (u8 *)"", 0, _KEY_LENGTH);
+    ctx->client_handshake_key = derive_secret(ctx->client_handshake_traffic_secret, _SHA_DIGEST_LENGTH, "key", (u8 *)"", 0, _KEY_LENGTH);
+    ctx->server_handshake_iv = derive_secret(ctx->server_handshake_traffic_secret, _SHA_DIGEST_LENGTH, "iv", (u8 *)"", 0, _NONCE_LENGTH);
+    ctx->client_handshake_iv = derive_secret(ctx->client_handshake_traffic_secret, _SHA_DIGEST_LENGTH, "iv", (u8 *)"", 0, _NONCE_LENGTH);
 
     // printf("hs: ");
-    // print_bytes(ctx->handshake_secret, 48);
-    // printf("ssec: ");
-    // print_bytes(ctx->server_handshake_traffic_secret, 48);
-    // printf("csec: ");
-    // print_bytes(ctx->client_handshake_traffic_secret, 48);
+    // print_bytes(ctx->handshake_secret, _SHA_DIGEST_LENGTH);
+    printf("ssec: \n");
+    print_bytes(ctx->server_handshake_traffic_secret, _SHA_DIGEST_LENGTH);
+    printf("csec: \n");
+    print_bytes(ctx->client_handshake_traffic_secret, _SHA_DIGEST_LENGTH);
     // printf("skey: ");
     // print_bytes(ctx->server_handshake_key, 32);
     // printf("ckey: ");
     // print_bytes(ctx->client_handshake_key, 32);
-    // printf("siv: ");
-    // print_bytes(ctx->server_handshake_iv, 12);
-    // printf("civ: ");
-    // print_bytes(ctx->client_handshake_iv, 12);
-    // printf("\n");
+    printf("siv: ");
+    print_bytes(ctx->server_handshake_iv, _NONCE_LENGTH);
+    printf("civ: ");
+    print_bytes(ctx->client_handshake_iv, _NONCE_LENGTH);
+    printf("\n");
 
-    free(key);
-    free(salt);
+    // free(key);
+    // free(salt);
     free(early_secret);
     free(empty_hash);
     free(derived_secret);
@@ -360,7 +363,7 @@ void enc_server_ext(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY_EXCHANGE_CTX *
     pt_len = server_extension_len + 1;
 
     u8 *ct = malloc(pt_len * sizeof(u8));
-    iv = build_iv(key_ctx->server_handshake_iv, &(key_ctx->s_hs_seq));
+    iv = GEN_IV(key_ctx->server_handshake_iv, &(key_ctx->s_hs_seq));
 
     evp_enc_init(&ctx, key_ctx->server_handshake_key, iv);
     enc_update(ctx, record_header, record_header_len, NULL, &ct_len, &outlen);
@@ -383,9 +386,9 @@ void enc_server_ext(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY_EXCHANGE_CTX *
 
     update_transcript_hash_msg(transcript_hash_msg, server_extension, server_extension_len);
 
-    // printf("Wrap record 1 (len: %zu):\n", length);
-    // print_bytes(server_hello_msg->extensions, server_hello_msg->extensions_len);
-    // printf("\n");
+    printf("Wrap record 1 (len: %zu):\n", length);
+    print_bytes(server_hello_msg->extensions, server_hello_msg->extensions_len);
+    printf("\n");
 
     free(iv);
     free(pt);
@@ -460,7 +463,7 @@ void enc_server_cert(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY_EXCHANGE_CTX 
     pt_len = server_cert_len + 1;
 
     u8 *ct = malloc(pt_len * sizeof(u8));
-    iv = build_iv(key_ctx->server_handshake_iv, &(key_ctx->s_hs_seq));
+    iv = GEN_IV(key_ctx->server_handshake_iv, &(key_ctx->s_hs_seq));
 
     evp_enc_init(&ctx, key_ctx->server_handshake_key, iv);
     enc_update(ctx, record_header, record_header_len, NULL, &ct_len, &outlen);
@@ -521,8 +524,8 @@ void enc_server_cert_verify(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY_EXCHAN
     to_sign = concat_uc_str(space_64, 64, sign_fixed_str, strlen((char *)sign_fixed_str) + 1);
     to_sign_len = 64 + strlen((char *)sign_fixed_str) + 1;
 
-    to_sign = concat_uc_str(to_sign, to_sign_len, transcript_hash_msg->hash, SHA384_DIGEST_LENGTH);
-    to_sign_len += SHA384_DIGEST_LENGTH;
+    to_sign = concat_uc_str(to_sign, to_sign_len, transcript_hash_msg->hash, _SHA_DIGEST_LENGTH);
+    to_sign_len += _SHA_DIGEST_LENGTH;
 
     signature = sign_msg(to_sign, to_sign_len, SIGN_ALG, &sign_len);
 
@@ -550,7 +553,7 @@ void enc_server_cert_verify(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY_EXCHAN
     pt_len = server_cert_verify_len + 1;
     
     u8 *ct = malloc(pt_len * sizeof(u8));
-    iv = build_iv(key_ctx->server_handshake_iv, &(key_ctx->s_hs_seq));
+    iv = GEN_IV(key_ctx->server_handshake_iv, &(key_ctx->s_hs_seq));
 
     evp_enc_init(&ctx, key_ctx->server_handshake_key, iv);
     enc_update(ctx, record_header, record_header_len, NULL, &ct_len, &outlen);
@@ -603,9 +606,9 @@ void enc_server_handshake_finished(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY
     u8 *server_handshake_finished = NULL;
     size_t verify_data_len, finished_header_len = 4, server_handshake_finished_len;
 
-    finish_key = derive_secret(key_ctx->server_handshake_traffic_secret, SHA384_DIGEST_LENGTH, "finished", (u8 *)"", 0, SHA384_DIGEST_LENGTH);
-    verify_data = hmac_sha384(finish_key, SHA384_DIGEST_LENGTH, transcript_hash_msg->hash, transcript_hash_msg->hash_len);
-    verify_data_len = SHA384_DIGEST_LENGTH;
+    finish_key = derive_secret(key_ctx->server_handshake_traffic_secret, _SHA_DIGEST_LENGTH, "finished", (u8 *)"", 0, _SHA_DIGEST_LENGTH);
+    verify_data = hmac_sha_t(finish_key, _SHA_DIGEST_LENGTH, transcript_hash_msg->hash, transcript_hash_msg->hash_len);
+    verify_data_len = _SHA_DIGEST_LENGTH;
 
     insert_header_len(handshake_finished_header, verify_data_len, 1, 3);
     server_handshake_finished = concat_uc_str(handshake_finished_header, 4, verify_data, verify_data_len);
@@ -618,7 +621,7 @@ void enc_server_handshake_finished(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY
     pt_len = server_handshake_finished_len + 1;
 
     u8 *ct = malloc(pt_len * sizeof(u8));
-    iv = build_iv(key_ctx->server_handshake_iv, &(key_ctx->s_hs_seq));
+    iv = GEN_IV(key_ctx->server_handshake_iv, &(key_ctx->s_hs_seq));
 
     evp_enc_init(&ctx, key_ctx->server_handshake_key, iv);
     enc_update(ctx, record_header, record_header_len, NULL, &ct_len, &outlen);
@@ -655,22 +658,23 @@ void enc_server_handshake_finished(SERVER_HELLO_MSG *server_hello_msg, TLS13_KEY
 }
 
 void master_key_calc(TLS13_KEY_EXCHANGE_CTX *ctx, const TRANSCRIPT_HASH_MSG transcript_hash_msg){
-    size_t len = strlen(ZERO_STR) / 2;
-    u8 *key = malloc(len * sizeof(u8));
-    hexStringToBytes(ZERO_STR, key, strlen(ZERO_STR));
+    // size_t len = strlen(ZERO_STR) / 2;
+    // u8 *key = malloc(len * sizeof(u8));
+    // hexStringToBytes(ZERO_STR, key, strlen(ZERO_STR));
 
-    u8 *empty_hash = sha384(NULL, 0);
+    u8 *empty_hash = sha_t(NULL, 0);
 
-    u8 *derived_secret = derive_secret(ctx->handshake_secret, SHA384_DIGEST_LENGTH, "derived", empty_hash, SHA384_DIGEST_LENGTH, SHA384_DIGEST_LENGTH);
-    u8 *ms = hkdf_extract(derived_secret, SHA384_DIGEST_LENGTH, key, len);
-    u8 *ssec = derive_secret(ms, SHA384_DIGEST_LENGTH, "s ap traffic", transcript_hash_msg.hash, SHA384_DIGEST_LENGTH, SHA384_DIGEST_LENGTH);
-    u8 *csec = derive_secret(ms, SHA384_DIGEST_LENGTH, "c ap traffic", transcript_hash_msg.hash, SHA384_DIGEST_LENGTH, SHA384_DIGEST_LENGTH);
-    ctx->server_master_key = derive_secret(ssec, SHA384_DIGEST_LENGTH, "key", (u8 *)"", 0, AES_KEY_LENGTH_256);
-    ctx->client_master_key = derive_secret(csec, SHA384_DIGEST_LENGTH, "key", (u8 *)"", 0, AES_KEY_LENGTH_256);
-    ctx->server_master_iv = derive_secret(ssec, SHA384_DIGEST_LENGTH, "iv", (u8 *)"", 0, GCM_IV_LENGTH);
-    ctx->client_master_iv = derive_secret(csec, SHA384_DIGEST_LENGTH, "iv", (u8 *)"", 0, GCM_IV_LENGTH);
+    u8 *derived_secret = derive_secret(ctx->handshake_secret, _SHA_DIGEST_LENGTH, "derived", empty_hash, _SHA_DIGEST_LENGTH, _SHA_DIGEST_LENGTH);
+    // u8 *ms = hkdf_extract(derived_secret, _SHA_DIGEST_LENGTH, key, len);
+    u8 *ms = hkdf_extract(derived_secret, _SHA_DIGEST_LENGTH, kZeros, _SHA_DIGEST_LENGTH);
+    u8 *ssec = derive_secret(ms, _SHA_DIGEST_LENGTH, "s ap traffic", transcript_hash_msg.hash, _SHA_DIGEST_LENGTH, _SHA_DIGEST_LENGTH);
+    u8 *csec = derive_secret(ms, _SHA_DIGEST_LENGTH, "c ap traffic", transcript_hash_msg.hash, _SHA_DIGEST_LENGTH, _SHA_DIGEST_LENGTH);
+    ctx->server_master_key = derive_secret(ssec, _SHA_DIGEST_LENGTH, "key", (u8 *)"", 0, _KEY_LENGTH);
+    ctx->client_master_key = derive_secret(csec, _SHA_DIGEST_LENGTH, "key", (u8 *)"", 0, _KEY_LENGTH);
+    ctx->server_master_iv = derive_secret(ssec, _SHA_DIGEST_LENGTH, "iv", (u8 *)"", 0, _NONCE_LENGTH);
+    ctx->client_master_iv = derive_secret(csec, _SHA_DIGEST_LENGTH, "iv", (u8 *)"", 0, _NONCE_LENGTH);
 
-    free(key);
+    // free(key);
     free(empty_hash);
     free(derived_secret);
     free(ms);
@@ -693,23 +697,11 @@ int verify_client_finished(u8 *client_finished, size_t client_finished_len, TLS1
 
     u8 *finished_key = NULL;
     u8 *verify_data = NULL;
-    u8 handshake_finished_header[] = {0x14, 0x00, 0x00, 0x00};
-    u8 *client_handshake_finished = NULL;
     size_t verify_data_len, client_handshake_finished_len;
 
-    finished_key = derive_secret(key_ctx->client_handshake_traffic_secret, SHA384_DIGEST_LENGTH, "finished", (u8 *)"", 0, SHA384_DIGEST_LENGTH);
-    verify_data = hmac_sha384(finished_key, SHA384_DIGEST_LENGTH, transcript_hash_msg.hash, transcript_hash_msg.hash_len);
-    verify_data_len = SHA384_DIGEST_LENGTH;
-
-    insert_header_len(handshake_finished_header, verify_data_len, 1, 3);
-    client_handshake_finished = concat_uc_str(handshake_finished_header, 4, verify_data, verify_data_len);
-    client_handshake_finished_len = 4 + verify_data_len;
-
-    client_handshake_finished = concat_uc_str(client_handshake_finished, client_handshake_finished_len, record_type, 1);
-    client_handshake_finished_len++;
-
-    // printf("client handshake finished(len: %zu):\n", client_handshake_finished_len);
-    // print_bytes(client_handshake_finished, client_handshake_finished_len);
+    finished_key = derive_secret(key_ctx->client_handshake_traffic_secret, _SHA_DIGEST_LENGTH, "finished", (u8 *)"", 0, _SHA_DIGEST_LENGTH);
+    verify_data = hmac_sha_t(finished_key, _SHA_DIGEST_LENGTH, transcript_hash_msg.hash, transcript_hash_msg.hash_len);
+    verify_data_len = _SHA_DIGEST_LENGTH;
     
     if(!cmp_uc_str(change_cipher_spec, client_finished, 6)){
         printf("Error: No \"change cipher spec\" message recieved.\n");
@@ -733,26 +725,31 @@ int verify_client_finished(u8 *client_finished, size_t client_finished_len, TLS1
     }
 
     u8 *pt = malloc(ct_len * sizeof(u8));
-    iv = build_iv(key_ctx->client_handshake_iv, &key_ctx->c_hs_seq);
+    iv = GEN_IV(key_ctx->client_handshake_iv, &key_ctx->c_hs_seq);
     evp_dec_init(&ctx, key_ctx->client_handshake_key, iv);
     dec_update(ctx, aad, 5, NULL, &pt_len, &outlen);
     dec_update(ctx, ct, ct_len, pt, &pt_len, &outlen);
-    complete_dec(&ctx, pt, &pt_len, &outlen, tag);
-
-    // printf("Decrypted verify data:(len: %d):\n", pt_len);
-    // print_bytes(pt, pt_len);
-    // printf("\n");
-
-    if( pt_len != client_finished_len ||
-        !cmp_uc_str(client_finished, pt, pt_len))
+    if(!complete_dec(&ctx, pt, &pt_len, &outlen, tag)){
         return 0;
+    }
+    // else{
+    //     printf("Decrypted verify data:(len: %d):\n", pt_len);
+    //     print_bytes(pt, pt_len);
+    //     printf("\n");
+    // }
+
+    // pt = msg type (1 byte) + finished data len (3 bytes) + verify data (_SHA_DIGEST_LENGTH bytes) + record type (1 byte)
+    if( pt_len - 5 != verify_data_len ||
+        !cmp_uc_str(pt + 4, verify_data, verify_data_len)){
+        printf("Verification data comparison failed\n");
+        return 0;
+    }
 
     free(iv);
     free(ct);
     free(pt);
     free(finished_key);
     free(verify_data);
-    free(client_handshake_finished);
 
     return 1;
 }
@@ -846,7 +843,7 @@ u8 * generate_session_ticket(TLS13_KEY_EXCHANGE_CTX *key_ctx, SESSION_POOL *pool
     // print_bytes(pt, pt_len);
 
     u8 *ct = malloc(pt_len * sizeof(u8));
-    iv = build_iv(pool[*pool_len].key_ctx->server_master_iv, &(pool[*pool_len].key_ctx->s_ap_seq));
+    iv = GEN_IV(pool[*pool_len].key_ctx->server_master_iv, &(pool[*pool_len].key_ctx->s_ap_seq));
     // printf("server_ap_seq: %llu\n", pool[*pool_len].key_ctx->s_ap_seq);
     evp_enc_init(&ctx, pool[*pool_len].key_ctx->server_master_key, iv);
     enc_update(ctx, record_header, record_header_len, NULL, &ct_len, &outlen);
