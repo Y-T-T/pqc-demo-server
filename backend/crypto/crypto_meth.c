@@ -9,16 +9,9 @@ static const EVP_CIPHER * get_cipher_suite_alg() {
 u8 * build_nonce(u8 *iv, uint64_t *seq){
 
     u8 *nonce = malloc(_NONCE_LENGTH * sizeof(u8));
-    // print_bytes(iv, _NONCE_LENGTH);
     memcpy(nonce, iv, 4);
-	for (int i = 0; i < 8; i++){
+    for(int i = 0; i < 8; i++)
         nonce[4 + i] = iv[4 + i] ^ (((*seq) >> ((7-i) * 8))&0xFF);
-    }
-    
-    // printf("nonce:");
-    // for(int i = 0; i < _NONCE_LENGTH; i++)
-    //     printf("%02x", nonce[i]);
-    // printf("\n");
     (*seq)++;
 
     return nonce;
