@@ -44,5 +44,5 @@ P.S. Chrome's default setting is now on
 * The gunicron server logs will be output to `backend/access.log` and `backend/error.log`
 
 #### Warning
-The new NIST standard ML-KEM has been released ([FIPS 203](https://doi.org/10.6028/NIST.FIPS.203)).
+The new NIST standard ML-KEM has been released ([FIPS 203](https://doi.org/10.6028/NIST.FIPS.203)).<br>
 Chrome is expected to stop supporting the old version of Kyber in version 131, and this [update](https://security.googleblog.com/2024/09/a-new-path-for-kyber-on-web.html) is expected to be in November 2024.
