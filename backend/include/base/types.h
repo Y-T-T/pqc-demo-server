@@ -93,7 +93,7 @@ typedef struct TRANSCRIPT_HASH_MSG
     size_t hash_len;
 } TRANSCRIPT_HASH_MSG;
 
-typedef struct SERVER_HELLO_MSG // for server response
+typedef struct SERVER_HELLO_MSG // for server hello
 {
     u8 *hello_msg;
     size_t hello_msg_len;
@@ -112,7 +112,7 @@ typedef struct SERVER_HELLO_MSG // for server response
 } SERVER_HELLO_MSG;
 
 
-typedef struct HANDSHAKE_HELLO_MSG_CTX
+typedef struct HANDSHAKE_HELLO_MSG_CTX // for parse client hello
 {
     u8 record_header[5];
     u8 handshake_header[4];
@@ -131,17 +131,17 @@ typedef struct TLS13_KEY_EXCHANGE_CTX
     u8 *handshake_secret; // _SHA_DIGEST_LENGTH
     u8 *server_handshake_traffic_secret; // _SHA_DIGEST_LENGTH
     u8 *client_handshake_traffic_secret; // _SHA_DIGEST_LENGTH
-    u8 *server_handshake_key; // AES_KEY_LENGTH_256
-    u8 *client_handshake_key; // AES_KEY_LENGTH_256
-    u8 *server_handshake_iv; // GCM_IV_LENGTH
+    u8 *server_handshake_key; // _KEY_LENGTH
+    u8 *client_handshake_key; // _KEY_LENGTH
+    u8 *server_handshake_iv; // _NONCE_LENGTH
     uint64_t s_hs_seq;
-    u8 *client_handshake_iv; // GCM_IV_LENGTH
+    u8 *client_handshake_iv; // _NONCE_LENGTH
     uint64_t c_hs_seq;
-    u8 *server_master_key; // AES_KEY_LENGTH_256
-    u8 *client_master_key; // AES_KEY_LENGTH_256
-    u8 *server_master_iv; // GCM_IV_LENGTH
+    u8 *server_master_key; // _KEY_LENGTH
+    u8 *client_master_key; // _KEY_LENGTH
+    u8 *server_master_iv; // _NONCE_LENGTH
     uint64_t s_ap_seq;
-    u8 *client_master_iv; // GCM_IV_LENGTH
+    u8 *client_master_iv; // _NONCE_LENGTH
     uint64_t c_ap_seq;
 } TLS13_KEY_EXCHANGE_CTX;
 
