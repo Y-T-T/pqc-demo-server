@@ -86,7 +86,7 @@ static u8 * hkdf_expand(const u8 *ss, const size_t ss_len, struct HkdfLabel hkdf
     size_t res_len = 0;
 
     u8 *hexin, *md;
-    u8 *res = malloc((out_len / (SHA384_DIGEST_LENGTH + 1) + 1) * SHA384_DIGEST_LENGTH * sizeof(u8));
+    u8 *res = malloc((out_len / (_SHA_DIGEST_LENGTH + 1) + 1) * _SHA_DIGEST_LENGTH * sizeof(u8));
     // memcpy(res, info, info_len);
     // res_len = info_len;
 
@@ -99,11 +99,11 @@ static u8 * hkdf_expand(const u8 *ss, const size_t ss_len, struct HkdfLabel hkdf
 
         md = hmac_sha_t(ss, ss_len, hexin, res_len + info_len + 1);
         // printf("md: ");
-        // print_bytes(md, SHA384_DIGEST_LENGTH);
+        // print_bytes(md, _SHA_DIGEST_LENGTH);
 
-        memcpy(res + res_len, md, SHA384_DIGEST_LENGTH);
+        memcpy(res + res_len, md, _SHA_DIGEST_LENGTH);
         
-        res_len += SHA384_DIGEST_LENGTH;
+        res_len += _SHA_DIGEST_LENGTH;
         // printf("res: ");
         // print_bytes(res, res_len);
     }
