@@ -104,8 +104,6 @@ int main() {
                 * 3. server certificate verify
                 * 4. server handshake finished
                 */
-               
-                // test_chacha();
 
                 enc_server_ext(&server_hello_response, &key_ctx, &transcript_hash_msg);
                 enc_server_cert(&server_hello_response, &key_ctx, &transcript_hash_msg);
