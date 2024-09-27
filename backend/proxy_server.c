@@ -4,8 +4,6 @@
 #include <crypto/x25519kyber768draft00.h>
 #include <tls/handshake.h>
 #include <tls/tls13_enc_dec.h>
-#include <tls/tls13_hkdf_expand.h>
-#include <crypto/crypto_meth.h>
 
 int main() {
     extern int proxy_sock, client_sock, server_sock;

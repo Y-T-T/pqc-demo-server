@@ -2,7 +2,6 @@
 #include <base/base.h>
 #include <crypto/crypto_meth.h>
 #include <crypto/x25519.h>
-#include <tls/tls13_enc_dec.h>
 #include <tls/tls13_hkdf_expand.h>
 #include <tls/rsa_pss_rsae_sha_t.h>
 

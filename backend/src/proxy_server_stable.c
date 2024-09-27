@@ -4,8 +4,6 @@
 #include <crypto/x25519kyber768draft00.h>
 #include <tls/handshake.h>
 #include <tls/tls13_enc_dec.h>
-#include <tls/tls13_hkdf_expand.h>
-#include <crypto/crypto_meth.h>
 
 int main() {
     extern int proxy_sock, client_sock, server_sock;
@@ -104,8 +102,6 @@ int main() {
                 * 3. server certificate verify
                 * 4. server handshake finished
                 */
-               
-                // test_chacha();
 
                 enc_server_ext(&server_hello_response, &key_ctx, &transcript_hash_msg);
                 enc_server_cert(&server_hello_response, &key_ctx, &transcript_hash_msg);
