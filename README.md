@@ -3,6 +3,7 @@
 ![X25519Kyber768Draft00](https://img.shields.io/badge/TLS-X25519Kyber768Draft00-88292f)
 ![TLS_AES_256_GCM_SHA384](https://img.shields.io/badge/Cipher-AES__256__GCM__SHA384-88292f)
 ![TLS_CHACHA20_POLY1305_SHA256](https://img.shields.io/badge/Cipher-CHACHA20__POLY1305__SHA256-88292f)
+![Hardware_FPGA](https://img.shields.io/badge/Hardware-FPGA-05299E)
 
 ## PQC demo server
 
