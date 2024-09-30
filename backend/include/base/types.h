@@ -164,4 +164,12 @@ typedef struct HkdfLabel
     u8 context[256];
 } HkdfLabel;
 
+typedef struct pynq_args
+{
+    int port;
+    u8 *pk;
+    u8 *ss;
+    u8 *ct;
+} pynq_args;
+
 #endif

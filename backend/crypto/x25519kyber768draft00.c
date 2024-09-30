@@ -3,6 +3,7 @@
 #include <base/base.h>
 #include <kyber/kem.h>
 #include <base/serving.h>
+#include <pynq/uart.h>
 
 void X25519_KYBER768_KEYGEN(const HANDSHAKE_HELLO_MSG_CTX client, HANDSHAKE_HELLO_MSG_CTX *server){
     /* X25519 */
@@ -10,10 +11,21 @@ void X25519_KYBER768_KEYGEN(const HANDSHAKE_HELLO_MSG_CTX client, HANDSHAKE_HELL
 
 
     /* Kyber768 */
-    crypto_kem_enc(
+    // crypto_kem_enc(
+    //     server->extensions.key_share.key.kyber768.ct,
+    //     server->extensions.key_share.key.kyber768.ss, 
+    //     client.extensions.key_share.key.kyber768.pkey);
+
+    /* FPGA ref */
+    fpga_kyber768(
         server->extensions.key_share.key.kyber768.ct,
         server->extensions.key_share.key.kyber768.ss, 
         client.extensions.key_share.key.kyber768.pkey);
+        printf("\nCT read in wsl :\n");
+        print_bytes(server->extensions.key_share.key.kyber768.ct, KYBER_CIPHERTEXTBYTES);
+        printf("\nSS read in wsl :\n");
+        print_bytes(server->extensions.key_share.key.kyber768.ss, KYBER_SECRETKEYBYTES);
+
 }
 
 void build_server_hello(SERVER_HELLO_MSG *server_hello_msg, const HANDSHAKE_HELLO_MSG_CTX client, HANDSHAKE_HELLO_MSG_CTX *server){
