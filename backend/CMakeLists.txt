@@ -7,6 +7,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 find_package(OpenSSL REQUIRED)
+find_package(Threads REQUIRED)
 
 include_directories(${OPENSSL_INCLUDE_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/include)
@@ -27,4 +28,4 @@ add_executable(
     ${SUBDIR_SOURCES}
     )
 
-target_link_libraries(test_server PUBLIC tls server crypto pynq kyber ${OPENSSL_LIBRARIES})
+target_link_libraries(test_server PUBLIC tls server crypto pynq kyber ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES})
