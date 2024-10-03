@@ -1,5 +1,5 @@
-#ifndef FPGA_UART_H
-#define FPGA_UART_H
+#ifndef FPGA_PYNQ_H
+#define FPGA_PYNQ_H
 
 // #define BAUDRATE B115200
 // #define PYNQ_PORTNAME "/dev/ttyUSB0"

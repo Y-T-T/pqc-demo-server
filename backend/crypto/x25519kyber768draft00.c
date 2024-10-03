@@ -3,7 +3,7 @@
 #include <base/base.h>
 #include <kyber/kem.h>
 #include <base/serving.h>
-#include <pynq/uart.h>
+#include <pynq/pynq.h>
 
 void X25519_KYBER768_KEYGEN(const HANDSHAKE_HELLO_MSG_CTX client, HANDSHAKE_HELLO_MSG_CTX *server){
     /* X25519 */
