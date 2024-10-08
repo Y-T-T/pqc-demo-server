@@ -4,7 +4,6 @@ test*
 
 build/
 libraries/
-cert/
 src/proxy_server_test.c
 http_server.c
 

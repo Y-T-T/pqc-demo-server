@@ -31,6 +31,7 @@ This is a [proxy server](https://www.pqc-demo.xyz) demonstration based on TLS 1.
 ### Setup
 
 #### Server
+**A self-signed SSL certificate for testing has been uploaded. If you do not have your own certificate, you can skip steps 1 and 2.**
 1. Put the server certificate in the `cert` folder, and then copy the entire `cert` folder to the `backend/src` folder
 2. Put the file names of the certificate and key into `backend/setting.conf`
 3. run `setup` script (Use `sudo` if necessary)
