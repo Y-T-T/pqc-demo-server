@@ -1,6 +1,6 @@
 ![Linux](https://img.shields.io/badge/platform-Linux-green.svg)
 ![macOS](https://img.shields.io/badge/platform-macOS-green.svg)
-![X25519Kyber768Draft00](https://img.shields.io/badge/TLS-X25519Kyber768Draft00-88292f)
+![X25519MLKEM768](https://img.shields.io/badge/TLS-X25519Kyber768Draft00-88292f)
 ![TLS_AES_256_GCM_SHA384](https://img.shields.io/badge/Cipher-AES__256__GCM__SHA384-88292f)
 ![TLS_CHACHA20_POLY1305_SHA256](https://img.shields.io/badge/Cipher-CHACHA20__POLY1305__SHA256-88292f)
 
@@ -8,9 +8,9 @@
 
 ### Intro
 
-This is a [reverse proxy server](https://www.pqc-demo.xyz) demonstration based on TLS 1.3 hybrid post-quantum encryption protocol encryption:`X25519Kyber768Draft00`
+This branch (`mlkem-dev`) contains updates and migration to the new ML-KEM (FIPS 203) standard for post-quantum hybrid ECDHE-MLKEM key agreement:`X25519MLKEM768`
 
-`X25519Kyber768Draft00` definition: https://bwesterb.github.io/draft-westerbaan-tls-xyber768d00/draft-tls-westerbaan-xyber768d00.html
+`X25519MLKEM768` definition: https://www.ietf.org/archive/id/draft-kwiatkowski-tls-ecdhe-mlkem-02.html
 
 ### Requirement
 
@@ -20,7 +20,7 @@ This is a [reverse proxy server](https://www.pqc-demo.xyz) demonstration based o
 * ![openssl](https://img.shields.io/badge/openssl-3.0.2-blue)
 * ![nodeJS](https://img.shields.io/badge/nodeJS-22.7.0-blue)
 * ![npm](https://img.shields.io/badge/npm-10.2.4-blue)
-* ![chrome](https://img.shields.io/badge/chrome-%3E116-blue)
+* ![chrome](https://img.shields.io/badge/chrome-%3E131-blue)
 
 ### Framework
 
@@ -37,13 +37,8 @@ This is a [reverse proxy server](https://www.pqc-demo.xyz) demonstration based o
 3. run `setup` script (Use `sudo` if necessary)
 
 #### Client
-1. Open the chrome and goto `chrome://flags`
-2. Enable `TLS 1.3 hybridized Kyber support` (Chrome is now turned on by default)
+1. Open the chrome and go to `https://127.0.0.1`
 
 #### Notice
 * The cert folder must contain the X.509 certificate in `DER` format and the key in `PEM` format.
 * The gunicron server logs will be output to `backend/access.log` and `backend/error.log`
-
-### Warning
-The new NIST standard ML-KEM has been released ([FIPS 203](https://doi.org/10.6028/NIST.FIPS.203)).<br>
-Chrome is expected to stop supporting the old version of Kyber in version 131, and this [update](https://security.googleblog.com/2024/09/a-new-path-for-kyber-on-web.html) is expected to be in November 2024.
