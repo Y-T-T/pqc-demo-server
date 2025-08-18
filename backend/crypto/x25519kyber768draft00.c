@@ -28,11 +28,12 @@ void build_server_hello(SERVER_HELLO_MSG *server_hello_msg, const HANDSHAKE_HELL
     size_t len = 0;
     if(!client.extensions.session_ticket.valid){
         server_hello_msg->hello_msg = concat_uc_str(
-            server->extensions.key_share.key.x25519.pkey, X25519_KEY_LENGTH, 
-            server->extensions.key_share.key.kyber768.ct, KYBER_CIPHERTEXTBYTES
+            server->extensions.key_share.key.kyber768.ct, MLKEM_INDCCA_CIPHERTEXTBYTES,
+            server->extensions.key_share.key.x25519.pkey, X25519_KEY_LENGTH
+            // server->extensions.key_share.key.kyber768.ct, MLKEM_INDCCA_CIPHERTEXTBYTES
         );
-        len += X25519_KEY_LENGTH + KYBER_CIPHERTEXTBYTES;
-        server_hello_msg->hello_msg_len = X25519_KEY_LENGTH + KYBER_CIPHERTEXTBYTES;
+        len += X25519_KEY_LENGTH + MLKEM_INDCCA_CIPHERTEXTBYTES;
+        server_hello_msg->hello_msg_len = X25519_KEY_LENGTH + MLKEM_INDCCA_CIPHERTEXTBYTES;
 
         insert_header_len(server->extensions.key_share.key_len, len, 0 ,1);
         server_hello_msg->hello_msg = concat_uc_str(
@@ -42,7 +43,7 @@ void build_server_hello(SERVER_HELLO_MSG *server_hello_msg, const HANDSHAKE_HELL
         len += 2;
         server_hello_msg->hello_msg_len += 2;
 
-        u8 x25519kyber768draft00_key_method[] = {0x63, 0x99};
+        u8 x25519kyber768draft00_key_method[] = {0x11, 0xEC};
         memcpy(server->extensions.key_share.key_change_method, x25519kyber768draft00_key_method, 2);
         server_hello_msg->hello_msg = concat_uc_str(
             server->extensions.key_share.key_change_method, 2,

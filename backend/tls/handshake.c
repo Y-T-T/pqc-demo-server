@@ -117,7 +117,7 @@ size_t parse_client_hello(u8 *buffer, ssize_t buffer_len, HANDSHAKE_HELLO_MSG_CT
         len = buffer[idx+2] << 8 | buffer[idx+3];
         idx += len + 4;
     }
-    // printf("Find: %02x %02x\n", buffer[i], buffer[i+1]);
+    // printf("Find: %02x %02x\n", buffer[idx], buffer[idx+1]);
     if(idx < buffer_len){
 
         len = 2;
@@ -136,7 +136,7 @@ size_t parse_client_hello(u8 *buffer, ssize_t buffer_len, HANDSHAKE_HELLO_MSG_CT
         idx += len;
 
         // Find X25519Kyber768Draft00 public key
-        while(!(buffer[idx] == 0x63 && buffer[idx+1] == 0x99) && idx < buffer_len){
+        while(!(buffer[idx] == 0x11 && buffer[idx+1] == 0xEC) && idx < buffer_len){
             len = buffer[idx+2] << 8 | buffer[idx+3];
             idx += len + 4;
         }
@@ -151,13 +151,18 @@ size_t parse_client_hello(u8 *buffer, ssize_t buffer_len, HANDSHAKE_HELLO_MSG_CT
             // print_bytes(client_hello->extensions.key_share.key_len, len);
             idx += len;
 
+            len = MLKEM_INDCPA_PUBLICKEYBYTES;
+            memcpy(client_hello->extensions.key_share.key.kyber768.pkey, &buffer[idx], len);
+            // print_bytes(client_hello->extensions.key_share.key.kyber768.pkey, len);
+            idx += len;
+
             len = 32;
             memcpy(client_hello->extensions.key_share.key.x25519.pkey, &buffer[idx], len);
             // print_bytes(client_hello->extensions.key_share.key.x25519.pkey, len);
-            idx += len;
+            // idx += len;
             
-            len = KYBER_INDCPA_PUBLICKEYBYTES;
-            memcpy(client_hello->extensions.key_share.key.kyber768.pkey, &buffer[idx], len);
+            // len = MLKEM_INDCPA_PUBLICKEYBYTES;
+            // memcpy(client_hello->extensions.key_share.key.kyber768.pkey, &buffer[idx], len);
             // print_bytes(client_hello->extensions.key_share.key.kyber768.pkey, len);
         }
         else{
@@ -288,8 +293,9 @@ u8 * calc_ss(const HANDSHAKE_HELLO_MSG_CTX client, const HANDSHAKE_HELLO_MSG_CTX
 
     u8 *ss;
     ss = concat_uc_str(
-        x25519_ss, X25519_KEY_LENGTH,
-        server.extensions.key_share.key.kyber768.ss, KYBER_SSBYTES
+        server.extensions.key_share.key.kyber768.ss, MLKEM_SSBYTES,
+        x25519_ss, X25519_KEY_LENGTH
+        // server.extensions.key_share.key.kyber768.ss, MLKEM_SSBYTES
     );
     return ss;
 }
