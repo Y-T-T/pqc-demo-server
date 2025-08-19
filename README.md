@@ -42,3 +42,7 @@ This branch (`mlkem-dev`) contains updates and migration to the new ML-KEM (FIPS
 #### Notice
 * The cert folder must contain the X.509 certificate in `DER` format and the key in `PEM` format.
 * The gunicron server logs will be output to `backend/access.log` and `backend/error.log`
+
+### Acknowledgements
+This project makes use of the following open-source projects:
+- [mlkem-native](https://github.com/pq-code-package/mlkem-native)
