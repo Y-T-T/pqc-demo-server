@@ -45,4 +45,5 @@ This branch (`mlkem-dev`) contains updates and migration to the new ML-KEM (FIPS
 
 ### Acknowledgements
 This project makes use of the following open-source projects:
-- [mlkem-native](https://github.com/pq-code-package/mlkem-native)
+- [pq-crystals/kyber](https://github.com/pq-crystals/kyber)
+- [pq-code-package/mlkem-native](https://github.com/pq-code-package/mlkem-native)
