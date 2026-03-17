@@ -69,8 +69,7 @@ The PQC-Proxy acts as a Cryptographic Termination Point. It handles the PQC hand
 
 3. **Deployment:** Run the `sudo ./setup` script to initialize the environment.
 
-4. **Access:** Open Chrome and navigate to `https://127.0.0.1`.
-The server logs are output to `backend/access.log` and `backend/error.log` for debugging and protocol verification.
+4. **Access:** Open Chrome and navigate to `https://127.0.0.1`. The server logs are output to `backend/access.log` and `backend/error.log` for debugging and protocol verification.
 
 ## Important Considerations
 
