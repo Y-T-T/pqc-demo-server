@@ -4,46 +4,81 @@
 ![TLS_AES_256_GCM_SHA384](https://img.shields.io/badge/Cipher-AES__256__GCM__SHA384-88292f)
 ![TLS_CHACHA20_POLY1305_SHA256](https://img.shields.io/badge/Cipher-CHACHA20__POLY1305__SHA256-88292f)
 
-## PQC demo server
+# PQC-TLS 1.3 Handshake Prototype (ML-KEM)
 
-### Intro
+## Overview
 
-This branch (`mlkem-dev`) contains updates and migration to the new ML-KEM (FIPS 203) standard for post-quantum hybrid ECDHE-MLKEM key agreement:`X25519MLKEM768`
+An experimental, byte-level implementation of a TLS 1.3 reverse proxy, focusing on the integration of Post-Quantum Cryptography (PQC). This project handles the TLS record layer and handshake state machine manually to support the hybrid key agreement: **X25519-MLKEM768**.
 
-`X25519MLKEM768` definition: https://www.ietf.org/archive/id/draft-kwiatkowski-tls-ecdhe-mlkem-02.html
+The implementation emphasizes Manual Byte Marshalling, where every byte of the TLS handshake (from ClientHello parsing to ServerHello construction) is manually assembled in accordance with RFC 8446.
+
+To ensure FIPS 203 Compliance, the project implements the standardized ML-KEM (formerly Kyber) for quantum-resistant key encapsulation.
+
+The Hybrid Key Exchange logic demonstrates the precise integration of classical ECDH (X25519) and PQC (ML-KEM) shared secrets through a custom Key Derivation Function (KDF) flow.
+
+## Standards and Specifications
+
+IETF Draft:
+[X25519MLKEM768 Definition](https://www.ietf.org/archive/id/draft-kwiatkowski-tls-ecdhe-mlkem-02.html)
+
+NIST FIPS 203: [Module-Lattice-Based Key-Encapsulation Mechanism Standard
+](https://csrc.nist.gov/pubs/fips/203/final)
+
+## Architecture
+
+The following diagram illustrates how the proxy handles the hybrid key exchange. It ensures that the final session key is derived from both classical and post-quantum secrets, providing quantum-resistance while maintaining backward compatibility.
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Client (Chrome v131+)
+    participant P as PQC-Proxy (Manual C Implementation)
+    participant S as Backend (Flask/Gunicorn)
+
+    Note over C: Generate (pk1, sk1) - X25519<br/>Generate (pk2, sk2) - ML-KEM-768
+    C->>P: TLS ClientHello (Key Share: pk1 + pk2)
+    
+    Note over P: 1. Manual Byte Parsing of Extensions<br/>2. ML-KEM Encaps(pk2) -> (ct, ss1) <br/>3. Generate (pk3, sk3) - X25519<br/>ss2 = X25519(pk1, sk3)
+    
+    P->>C: TLS ServerHello (Key Share: ct + pk3)
+
+    Note over C: ss1 = ML-KEM Decaps(ct, sk2)<br/>ss2 = X25519(pk3, sk1)
+    
+    Note over C,P: Final Shared Secret (SS) = KDF(ss1 || ss2) <br/>Derive AES-GCM / ChaCha20 Keys
+    
+    C->>P: Encrypted Application Data
+    Note over P: 4. Decrypt Record Layer<br/>5. Forward Plaintext to Backend
+    P->>S: HTTP Request (Local)
+```
+
+The PQC-Proxy acts as a Cryptographic Termination Point. It handles the PQC handshake at the edge, allowing internal microservices to remain unchanged.
+
+## Setup and Usage
 
 ### Requirement
 
-* ![python](https://img.shields.io/badge/python-3.10.12-blue)
-* ![gunicorn](https://img.shields.io/badge/gunicorn-21.2.0-blue)
-* ![cmake](https://img.shields.io/badge/cmake-3.12-blue)
-* ![openssl](https://img.shields.io/badge/openssl-3.0.2-blue)
-* ![nodeJS](https://img.shields.io/badge/nodeJS-22.7.0-blue)
-* ![npm](https://img.shields.io/badge/npm-10.2.4-blue)
-* ![chrome](https://img.shields.io/badge/chrome-%3E131-blue)
+- Runtime: Python 3.10.12, NodeJS 22.7.0
+- Core Logic: C (Compiled with CMake 3.12+)
+- Crypto Context: OpenSSL 3.0.2 (Used only for cryptographic primitives, not protocol logic)
+- Browser: Chrome v131+ (for PQC hybrid support)
 
-### Framework
+### Installation
 
-* ![backend](https://img.shields.io/badge/backend-flask-689689)
-* ![proxy](https://img.shields.io/badge/proxy-C-689689)
-* ![frontend](https://img.shields.io/badge/frontend-reactJS-689689)
+1. **Certificate Preparation (Optional):** Place your DER-formatted X.509 certificate and PEM key into `backend/src/cert`, To ensure compatibility with the manual record layer parsing, the certificate must be in DER format while the private key should be in PEM format.
 
-### Setup
+2. **Settings:** Update the corresponding filenames in `backend/setting.conf`.
 
-#### Server
-**The self-signed SSL certificate for testing has been uploaded. If you do not have your own certificate, you can skip steps 1 and 2.**
-1. Put the server certificate in the `cert` folder, and then copy the entire `cert` folder to the `backend/src` folder
-2. Put the file names of the certificate and key into `backend/setting.conf`
-3. run `setup` script (Use `sudo` if necessary)
+3. **Deployment:** Run the `sudo ./setup` script to initialize the environment.
 
-#### Client
-1. Open the chrome and go to `https://127.0.0.1`
+4. **Access:** Open Chrome and navigate to `https://127.0.0.1`.
+The server logs are output to `backend/access.log` and `backend/error.log` for debugging and protocol verification.
 
-#### Notice
-* The cert folder must contain the X.509 certificate in `DER` format and the key in `PEM` format.
-* The gunicron server logs will be output to `backend/access.log` and `backend/error.log`
+## Important Considerations
 
-### Acknowledgements
+- **Experimental Scope:** This project is a functional prototype designed for protocol verification and educational purposes. It focuses on the correctness of the handshake flow rather than high-concurrency performance.
+
+- **Security Boundary:** The connection between the proxy and the Flask backend is currently plaintext, intended for local or internal VPC use.
+
+## Acknowledgements
 This project makes use of the following open-source projects:
 - [pq-crystals/kyber](https://github.com/pq-crystals/kyber)
 - [pq-code-package/mlkem-native](https://github.com/pq-code-package/mlkem-native)
